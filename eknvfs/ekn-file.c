@@ -234,6 +234,9 @@ ekn_file_query_info (GFile                *self,
   GFileAttributeMatcher *matcher;
   GFileInfo *info;
 
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return NULL;
+
   info    = g_file_info_new ();
   matcher = g_file_attribute_matcher_new (attributes);
 
@@ -251,6 +254,9 @@ ekn_file_query_info (GFile                *self,
 static GFileInputStream *
 ekn_file_read_fn (GFile *self, GCancellable *cancellable, GError **error)
 {
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return NULL;
+
   GInputStream *stream = eos_shard_blob_get_stream (EKN_FILE_PRIVATE (self)->blob);
   return _ekn_file_input_stream_wrapper_new (self, stream);
 }
