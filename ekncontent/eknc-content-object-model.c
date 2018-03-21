@@ -492,7 +492,7 @@ eknc_content_object_model_class_init (EkncContentObjectModelClass *klass)
 }
 
 static void
-eknc_content_object_model_init (EkncContentObjectModel *self)
+eknc_content_object_model_init (G_GNUC_UNUSED EkncContentObjectModel *self)
 {
 }
 

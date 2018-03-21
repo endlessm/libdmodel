@@ -126,7 +126,7 @@ eknc_audio_object_model_class_init (EkncAudioObjectModelClass *klass)
 }
 
 static void
-eknc_audio_object_model_init (EkncAudioObjectModel *self)
+eknc_audio_object_model_init (G_GNUC_UNUSED EkncAudioObjectModel *self)
 {
 }
 

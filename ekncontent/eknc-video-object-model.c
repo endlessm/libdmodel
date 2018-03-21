@@ -149,7 +149,7 @@ eknc_video_object_model_class_init (EkncVideoObjectModelClass *klass)
 }
 
 static void
-eknc_video_object_model_init (EkncVideoObjectModel *self)
+eknc_video_object_model_init (G_GNUC_UNUSED EkncVideoObjectModel *self)
 {
 }
 

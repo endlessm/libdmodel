@@ -172,7 +172,7 @@ eknc_media_object_model_class_init (EkncMediaObjectModelClass *klass)
 }
 
 static void
-eknc_media_object_model_init (EkncMediaObjectModel *self)
+eknc_media_object_model_init (G_GNUC_UNUSED EkncMediaObjectModel *self)
 {
 }
 

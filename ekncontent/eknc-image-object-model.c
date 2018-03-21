@@ -19,12 +19,12 @@ G_DEFINE_TYPE (EkncImageObjectModel,
                EKNC_TYPE_MEDIA_OBJECT_MODEL)
 
 static void
-eknc_image_object_model_class_init (EkncImageObjectModelClass *klass)
+eknc_image_object_model_class_init (G_GNUC_UNUSED EkncImageObjectModelClass *klass)
 {
 }
 
 static void
-eknc_image_object_model_init (EkncImageObjectModel *self)
+eknc_image_object_model_init (G_GNUC_UNUSED EkncImageObjectModel *self)
 {
 }
 

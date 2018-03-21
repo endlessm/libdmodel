@@ -147,7 +147,7 @@ eknc_dictionary_object_model_class_init (EkncDictionaryObjectModelClass *klass)
 }
 
 static void
-eknc_dictionary_object_model_init (EkncDictionaryObjectModel *self)
+eknc_dictionary_object_model_init (G_GNUC_UNUSED EkncDictionaryObjectModel *self)
 {
 }
 

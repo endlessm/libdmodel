@@ -137,7 +137,7 @@ eknc_query_results_class_init (EkncQueryResultsClass *klass)
 }
 
 static void
-eknc_query_results_init (EkncQueryResults *self)
+eknc_query_results_init (G_GNUC_UNUSED EkncQueryResults *self)
 {
 }
 

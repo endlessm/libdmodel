@@ -282,7 +282,7 @@ eknc_article_object_model_class_init (EkncArticleObjectModelClass *klass)
 }
 
 static void
-eknc_article_object_model_init (EkncArticleObjectModel *self)
+eknc_article_object_model_init (G_GNUC_UNUSED EkncArticleObjectModel *self)
 {
 }
 

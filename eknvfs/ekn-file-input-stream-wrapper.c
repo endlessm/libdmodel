@@ -29,7 +29,6 @@ struct _EknFileInputStreamWrapper
   GInputStream *stream;
   GFile *file;
 };
-typedef struct _EknFileInputStreamWrapper EknFileInputStreamWrapper;
 
 enum
 {
@@ -243,7 +242,7 @@ ekn_file_input_stream_wrapper_class_init (EknFileInputStreamWrapperClass *klass)
 }
 
 static void
-ekn_file_input_stream_wrapper_init (EknFileInputStreamWrapper *wrapper)
+ekn_file_input_stream_wrapper_init (G_GNUC_UNUSED EknFileInputStreamWrapper *wrapper)
 {
 }
 

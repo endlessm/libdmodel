@@ -510,15 +510,8 @@ eknc_query_object_class_init (EkncQueryObjectClass *klass)
 }
 
 static void
-eknc_query_object_init (EkncQueryObject *self)
+eknc_query_object_init (G_GNUC_UNUSED EkncQueryObject *self)
 {
-}
-
-// Returns a newly allocated string with the term parenthesized
-static gchar *
-parenthesize (const gchar *term)
-{
-  return g_strdup_printf ("(%s)", term);
 }
 
 // Limit term length we sent to xapian
@@ -582,8 +575,7 @@ get_exact_title_clause (EkncQueryObject *self,
 }
 
 static XapianQuery *
-get_title_clause (EkncQueryObject *self,
-                  XapianQueryParser *qp,
+get_title_clause (XapianQueryParser *qp,
                   char **terms,
                   char **corrected_terms,
                   GError **error_out)
@@ -850,7 +842,7 @@ get_corrected_query (EkncQueryObject *self,
     corrected_terms = get_terms (self->corrected_terms);
 
   g_autoptr(XapianQuery) title_clause =
-    get_title_clause (self, qp, raw_terms, corrected_terms, &error);
+    get_title_clause (qp, raw_terms, corrected_terms, &error);
   if (error != NULL)
     {
       g_propagate_error (error_out, error);

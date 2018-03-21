@@ -116,7 +116,7 @@ eknc_set_object_model_class_init (EkncSetObjectModelClass *klass)
 }
 
 static void
-eknc_set_object_model_init (EkncSetObjectModel *self)
+eknc_set_object_model_init (G_GNUC_UNUSED EkncSetObjectModel *self)
 {
 }
 

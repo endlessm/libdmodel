@@ -197,7 +197,7 @@ eknc_domain_class_init (EkncDomainClass *klass)
 }
 
 static void
-eknc_domain_init (EkncDomain *self)
+eknc_domain_init (G_GNUC_UNUSED EkncDomain *self)
 {
 }
 
@@ -228,8 +228,6 @@ eknc_domain_process_subscription (EkncDomain *self,
                                   GCancellable *cancellable,
                                   GError **error)
 {
-  GError *local_error = NULL;
-
   g_autoptr(GFile) manifest_file = g_file_get_child (bundle_dir, "manifest.json");
   if (!g_file_query_exists (manifest_file, cancellable))
     {
@@ -745,7 +743,7 @@ static void
 query_fix_task (GTask *task,
                 gpointer source_obj,
                 gpointer task_data,
-                GCancellable *cancellable)
+                G_GNUC_UNUSED GCancellable *cancellable)
 {
   RequestState *request = g_task_get_task_data (task);
   GError *error = NULL;
@@ -755,12 +753,10 @@ query_fix_task (GTask *task,
 
   g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&request->domain->db_lock);
 
-  gboolean result =
-    eknc_database_manager_fix_query (request->db_manager,
-                                     eknc_query_object_get_search_terms (request->query),
-                                     &request->fixed_stop_terms,
-                                     &request->fixed_spell_terms,
-                                     &error);
+  eknc_database_manager_fix_query (request->db_manager,
+                                   eknc_query_object_get_search_terms (request->query),
+                                   &request->fixed_stop_terms,
+                                   &request->fixed_spell_terms, &error);
   if (error != NULL)
     {
       g_task_return_error (task, error);
@@ -862,7 +858,7 @@ static void
 query_task (GTask *task,
             gpointer source_object,
             gpointer task_data,
-            GCancellable *cancellable)
+            G_GNUC_UNUSED GCancellable *cancellable)
 {
   RequestState *state = task_data;
   GError *error = NULL;

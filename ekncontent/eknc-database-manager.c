@@ -109,7 +109,7 @@ eknc_database_manager_add_queryparser_standard_prefixes (EkncDatabaseManager *se
 
   EkncDatabaseManagerPrivate *priv = eknc_database_manager_get_instance_private (self);
 
-  int idx;
+  guint idx;
 
   for (idx = 0; idx < G_N_ELEMENTS (standard_prefixes); idx++)
     xapian_query_parser_add_prefix (priv->query_parser,
@@ -215,7 +215,6 @@ eknc_database_manager_register_prefixes (EkncDatabaseManager *self,
   EkncDatabaseManagerPrivate *priv = eknc_database_manager_get_instance_private (self);
   GError *error = NULL;
   JsonNode *root;
-  gboolean ret = FALSE;
 
   /* Attempt to read the database's custom prefix association metadata */
   g_autofree char *metadata_json =
@@ -447,12 +446,11 @@ ensure_db (EkncDatabaseManager *self,
 }
 
 static XapianMSet *
-eknc_database_manager_fetch_results (EkncDatabaseManager *self,
-                                     XapianEnquire *enquire,
-                                     XapianQuery *query,
-                                     guint offset,
-                                     guint limit,
-                                     GError **error_out)
+fetch_results (XapianEnquire *enquire,
+               XapianQuery *query,
+               guint offset,
+               guint limit,
+               GError **error_out)
 {
   GError *error = NULL;
 
@@ -641,10 +639,7 @@ eknc_database_manager_query_internal (EkncDatabaseManager *self,
   guint offset = eknc_query_object_get_offset (query);
   guint limit = eknc_query_object_get_limit (query);
 
-  return eknc_database_manager_fetch_results (self, enquire,
-                                              parsed_query,
-                                              offset, limit,
-                                              error_out);
+  return fetch_results (enquire, parsed_query, offset, limit, error_out);
 }
 
 XapianMSet *

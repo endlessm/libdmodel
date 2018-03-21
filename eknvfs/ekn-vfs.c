@@ -226,7 +226,7 @@ ekn_vfs_get_property (GObject    *self,
 }
 
 static gboolean
-ekn_vfs_is_active (GVfs *self)
+ekn_vfs_is_active (G_GNUC_UNUSED GVfs *self)
 {
   return TRUE;
 }
@@ -334,7 +334,7 @@ ekn_vfs_class_init (EknVfsClass *klass)
 }
 
 static void
-ekn_vfs_class_finalize (EknVfsClass *klass)
+ekn_vfs_class_finalize (G_GNUC_UNUSED EknVfsClass *klass)
 {
 }
 
@@ -350,7 +350,7 @@ g_io_module_load (GIOModule *module)
 }
 
 void
-g_io_module_unload (GIOModule *module)
+g_io_module_unload (G_GNUC_UNUSED GIOModule *module)
 {
 }
 
