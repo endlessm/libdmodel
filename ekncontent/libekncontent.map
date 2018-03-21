@@ -1,0 +1,6 @@
+{
+    global:
+        eknc_*;
+    local:
+        *;
+};
