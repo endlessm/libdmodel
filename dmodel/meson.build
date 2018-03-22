@@ -73,7 +73,7 @@ introspection_sources = [sources, enum_sources, installed_headers]
 gnome.generate_gir(main_library, extra_args: ['--warn-all', '--warn-error'],
     identifier_prefix: 'Dm', include_directories: include,
     includes: ['EosShard-0', 'Gio-2.0', 'GLib-2.0', 'GObject-2.0', 'Json-1.0',
-        'Soup-2.4', 'Xapian-1.0'],
+        'Soup-2.4', 'Xapian-2.0'],
     install: true, namespace: namespace_name, nsversion: api_version,
     sources: introspection_sources, symbol_prefix: 'dm')
 

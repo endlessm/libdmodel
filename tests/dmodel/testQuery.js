@@ -1,3 +1,4 @@
+imports.gi.Xapian.version = '2.0';
 const {DModel, Xapian} = imports.gi;
 
 describe('Query', function () {
