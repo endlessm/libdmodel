@@ -745,13 +745,14 @@ query_fix_task (GTask *task,
                 gpointer task_data,
                 G_GNUC_UNUSED GCancellable *cancellable)
 {
-  RequestState *request = g_task_get_task_data (task);
+  EkncDomain *self = source_obj;
+  RequestState *request = task_data;
   GError *error = NULL;
 
   if (g_task_return_error_if_cancelled (task))
     return;
 
-  g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&request->domain->db_lock);
+  g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&self->db_lock);
 
   eknc_database_manager_fix_query (request->db_manager,
                                    eknc_query_object_get_search_terms (request->query),
@@ -861,14 +862,15 @@ query_task (GTask *task,
             G_GNUC_UNUSED GCancellable *cancellable)
 {
   RequestState *state = task_data;
+  EkncDomain *self = source_object;
   GError *error = NULL;
 
   if (g_task_return_error_if_cancelled (task))
     return;
 
-  g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&state->domain->db_lock);
+  g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&self->db_lock);
 
-  const char *lang = state->domain->language;
+  const char *lang = self->language;
   if (lang == NULL || *lang == '\0')
     lang = "none";
 
@@ -906,7 +908,7 @@ query_task (GTask *task,
       g_debug ("Retrieving document object '%s'\n", object_id);
 
       EkncContentObjectModel *model =
-        eknc_domain_get_object_sync (state->domain, object_id, NULL, &internal_error);
+        eknc_domain_get_object_sync (self, object_id, NULL, &internal_error);
 
       if (internal_error != NULL)
         {
