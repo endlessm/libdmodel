@@ -483,6 +483,9 @@ eknc_database_manager_fix_query_internal (EkncDatabaseManager *self,
                                           char **spell_fixed_terms_out,
                                           GError **error_out)
 {
+  g_return_val_if_fail (stop_fixed_terms_out != NULL, FALSE);
+  g_return_val_if_fail (spell_fixed_terms_out != NULL, FALSE);
+
   g_autoptr(EosProfileProbe) probe = EOS_PROFILE_PROBE ("/ekncontent/fix_query");
 
   EkncDatabaseManagerPrivate *priv = eknc_database_manager_get_instance_private (self);
