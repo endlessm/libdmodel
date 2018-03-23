@@ -12,6 +12,7 @@ G_BEGIN_DECLS
 #include "dm-article.h"
 #include "dm-audio.h"
 #include "dm-content.h"
+#include "dm-dictionary-entry.h"
 #include "dm-domain.h"
 #include "dm-engine.h"
 #include "dm-image.h"
