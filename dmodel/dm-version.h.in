@@ -1,0 +1,37 @@
+/* Copyright 2016 Endless Mobile, Inc. */
+
+#pragma once
+
+#if !(defined(_DM_INSIDE_DMODEL_H) || defined(COMPILING_DMODEL))
+#error "Please do not include this header file directly."
+#endif
+
+/**
+ * SECTION:version-information
+ * @title: Version Information
+ * @short_description: Variables and functions to check the library version
+ *
+ * Some macros to check the version of the content library.
+ */
+
+/**
+ * DM_MAJOR_VERSION:
+ *
+ * Major version number (API level) of the DModel library.
+ * For example, this is 0 for version 0.6.1.
+ */
+#define DM_MAJOR_VERSION (@DMODEL_MAJOR_VERSION@)
+/**
+ * DM_MINOR_VERSION:
+ *
+ * Minor version number of the DModel library.
+ * For example, this is 6 for version 0.6.1.
+ */
+#define DM_MINOR_VERSION (@DMODEL_MINOR_VERSION@)
+/**
+ * DM_MICRO_VERSION:
+ *
+ * Micro version number of the DModel library.
+ * For example, this is 1 for version 0.6.1.
+ */
+#define DM_MICRO_VERSION (@DMODEL_MICRO_VERSION@)

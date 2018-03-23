@@ -1,8 +1,8 @@
-eos-knowledge-content
-=====================
+libdmodel
+=========
 
-This is Endless' C library for accessing knowledge application content. Through
-gobject introspection it can be used in a wide variety of languages.
+This is Endless' C library for data models and database access for offline content.
+Through gobject introspection it can be used in a wide variety of languages.
 
 Building
 --------

@@ -1,21 +1,21 @@
 # Copyright 2018 Endless Mobile, Inc.
 
 javascript_tests = [
-    'ekncontent/testArticleObjectModel.js',
-    'ekncontent/testAudioObjectModel.js',
-    'ekncontent/testContentObjectModel.js',
-    'ekncontent/testDatadir.js',
-    'ekncontent/testDictionaryObjectModel.js',
-    'ekncontent/testDomain.js',
-    'ekncontent/testEngine.js',
-    'ekncontent/testImageObjectModel.js',
-    'ekncontent/testMediaObjectModel.js',
-    'ekncontent/testObjectModel.js',
-    'ekncontent/testQueryObject.js',
-    'ekncontent/testQueryResults.js',
-    'ekncontent/testSetObjectModel.js',
-    'ekncontent/testUtils.js',
-    'ekncontent/testVideoObjectModel.js',
+    'dmodel/testArticle.js',
+    'dmodel/testAudio.js',
+    'dmodel/testContent.js',
+    'dmodel/testContentFromJson.js',
+    'dmodel/testDatadir.js',
+    'dmodel/testDictionaryEntry.js',
+    'dmodel/testDomain.js',
+    'dmodel/testEngine.js',
+    'dmodel/testImage.js',
+    'dmodel/testMedia.js',
+    'dmodel/testQuery.js',
+    'dmodel/testQueryResults.js',
+    'dmodel/testSet.js',
+    'dmodel/testUtils.js',
+    'dmodel/testVideo.js',
 ]
 
 jasmine = find_program('jasmine')

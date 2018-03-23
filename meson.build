@@ -1,6 +1,6 @@
 # Copyright 2018 Endless Mobile, Inc.
 
-project('eos-knowledge-content', 'c', version: '0.0.0', license: 'LGPL2.1+',
+project('dmodel', 'c', version: '0.0.0', license: 'LGPL2.1+',
     meson_version: '>= 0.42.0',
     default_options: ['c_std=c99', 'warning_level=3'])
 
@@ -11,8 +11,7 @@ version_components = meson.project_version().split('.')
 api_version = version_components[0]
 api_name = '@0@-@1@'.format(meson.project_name(), api_version)
 libtool_version = '0.0.0'
-subdir_name = 'ekncontent'  # FIXME: make this equal to project_name
-namespace_name = 'EosKnowledgeContent'
+namespace_name = 'DModel'
 
 # Build options
 
@@ -41,7 +40,7 @@ xapian_glib = dependency('xapian-glib-1.0', version: xapian_glib_req)
 giomoduledir = gio.get_pkgconfig_variable('giomoduledir')
 
 subdir('eknvfs')
-subdir(subdir_name)
+subdir('dmodel')
 
 # Dependency object for gtk-doc and tests to use
 main_library_dependency = declare_dependency(dependencies: [glib, gobject],
@@ -55,7 +54,7 @@ install_data('overrides/@0@.js'.format(namespace_name),
 # Generated Files
 
 config = configuration_data()
-config.set_quoted('EKN_CONTENT_VERSION', meson.project_version())
+config.set_quoted('DM_VERSION', meson.project_version())
 configure_file(configuration: config, output: 'config.h')
 
 requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json_glib-1.0', 'soup-2.4']
@@ -74,7 +73,7 @@ pkg.generate(filebase: api_name, libraries: [main_library],
 subdir('tests')
 
 if get_option('documentation')
-    subdir('docs/reference/@0@'.format(subdir_name))
+    subdir('docs')
 endif
 
 # Summary
@@ -92,4 +91,3 @@ message('\n'.join([
     '   GIO Modules dir: @0@'.format(giomoduledir),
     ''
 ]))
-
