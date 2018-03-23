@@ -14,8 +14,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __EKNC_DATABASE_MANAGER_H__
-#define __EKNC_DATABASE_MANAGER_H__
+#pragma once
 
 #include <glib-object.h>
 #include <json-glib/json-glib.h>
@@ -58,5 +57,3 @@ dm_database_manager_fix_query (DmDatabaseManager *self,
                                GError **error_out);
 
 G_END_DECLS
-
-#endif /* __EKNC_DATABASE_MANAGER_H__ */
