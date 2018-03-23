@@ -3,6 +3,7 @@
 #pragma once
 
 #include "dm-content.h"
+#include "dm-macros.h"
 #include "dm-query.h"
 #include "dm-query-results.h"
 
@@ -11,6 +12,8 @@
 G_BEGIN_DECLS
 
 #define DM_TYPE_DOMAIN dm_domain_get_type ()
+
+DM_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (DmDomain, dm_domain, DM, DOMAIN, GObject)
 
 /**
@@ -38,22 +41,29 @@ typedef enum {
 } DmDomainError;
 
 #define DM_DOMAIN_ERROR dm_domain_error_quark ()
+
+DM_AVAILABLE_IN_ALL
 GQuark dm_domain_error_quark (void);
 
+DM_AVAILABLE_IN_ALL
 const gchar *
 dm_domain_get_subscription_id (DmDomain *self);
 
+DM_AVAILABLE_IN_ALL
 gchar * const *
 dm_domain_get_subscription_ids (DmDomain *self);
 
+DM_AVAILABLE_IN_ALL
 GSList *
 dm_domain_get_shards (DmDomain *self);
 
+DM_AVAILABLE_IN_ALL
 gchar *
 dm_domain_test_link (DmDomain *self,
                      const char *link,
                      GError **error);
 
+DM_AVAILABLE_IN_ALL
 void
 dm_domain_get_object (DmDomain *self,
                       const char *id,
@@ -61,11 +71,13 @@ dm_domain_get_object (DmDomain *self,
                       GAsyncReadyCallback callback,
                       gpointer user_data);
 
+DM_AVAILABLE_IN_ALL
 DmContent *
 dm_domain_get_object_finish (DmDomain *self,
                              GAsyncResult *result,
                              GError **error);
 
+DM_AVAILABLE_IN_ALL
 void
 dm_domain_get_fixed_query (DmDomain *self,
                            DmQuery *query,
@@ -73,11 +85,13 @@ dm_domain_get_fixed_query (DmDomain *self,
                            GAsyncReadyCallback callback,
                            gpointer user_data);
 
+DM_AVAILABLE_IN_ALL
 DmQuery *
 dm_domain_get_fixed_query_finish (DmDomain *self,
                                   GAsyncResult *result,
                                   GError **error);
 
+DM_AVAILABLE_IN_ALL
 void
 dm_domain_query (DmDomain *self,
                  DmQuery *query,
@@ -85,6 +99,7 @@ dm_domain_query (DmDomain *self,
                  GAsyncReadyCallback callback,
                  gpointer user_data);
 
+DM_AVAILABLE_IN_ALL
 gboolean
 dm_domain_read_uri (DmDomain *self,
                     const char *uri,
@@ -92,6 +107,7 @@ dm_domain_read_uri (DmDomain *self,
                     const char **mime_type,
                     GError **error);
 
+DM_AVAILABLE_IN_ALL
 DmQueryResults *
 dm_domain_query_finish (DmDomain *self,
                         GAsyncResult *result,

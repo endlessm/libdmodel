@@ -1,7 +1,7 @@
 /* Copyright 2016 Endless Mobile, Inc. */
 
 #include "dm-article.h"
-
+#include "dm-macros.h"
 #include "dm-utils-private.h"
 #include "dm-content-private.h"
 

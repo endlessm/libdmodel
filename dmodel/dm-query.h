@@ -5,9 +5,13 @@
 #include <glib-object.h>
 #include <xapian-glib.h>
 
+#include "dm-macros.h"
+
 G_BEGIN_DECLS
 
 #define DM_TYPE_QUERY dm_query_get_type ()
+
+DM_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (DmQuery, dm_query, DM, QUERY, GObject)
 
 /**
@@ -67,53 +71,69 @@ typedef enum {
   DM_QUERY_ORDER_DESCENDING,
 } DmQueryOrder;
 
+DM_AVAILABLE_IN_ALL
 char * const *
 dm_query_get_tags_match_all (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 char * const *
 dm_query_get_tags_match_any (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 char * const *
 dm_query_get_ids (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 char * const *
 dm_query_get_excluded_ids (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 char * const *
 dm_query_get_excluded_tags (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 const char *
 dm_query_get_search_terms (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 guint
 dm_query_get_cutoff (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 gint
 dm_query_get_sort_value (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 gboolean
 dm_query_is_match_all (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 guint
 dm_query_get_offset (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 guint
 dm_query_get_limit (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 const char *
 dm_query_get_content_type (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 const char *
 dm_query_get_excluded_content_type (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 XapianQuery *
 dm_query_get_query (DmQuery *self,
                     XapianQueryParser *qp,
                     GError **error_out);
 
+DM_AVAILABLE_IN_ALL
 char *
 dm_query_to_string (DmQuery *self);
 
+DM_AVAILABLE_IN_ALL
 DmQuery *
 dm_query_new_from_object (DmQuery *source,
                           const char *first_property_name,

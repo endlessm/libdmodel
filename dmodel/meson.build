@@ -18,6 +18,7 @@ installed_headers = [
     'dm-domain.h',
     'dm-engine.h',
     'dm-image.h',
+    'dm-macros.h',
     'dm-media.h',
     'dm-query.h',
     'dm-query-results.h',

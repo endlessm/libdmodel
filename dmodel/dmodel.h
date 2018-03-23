@@ -15,6 +15,7 @@ G_BEGIN_DECLS
 #include "dm-domain.h"
 #include "dm-engine.h"
 #include "dm-image.h"
+#include "dm-macros.h"
 #include "dm-media.h"
 #include "dm-query.h"
 #include "dm-query-results.h"
