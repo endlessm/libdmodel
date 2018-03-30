@@ -61,9 +61,8 @@ G_DEFINE_TYPE_EXTENDED (EknFile,
 #define EKN_FILE_PRIVATE(d) ((EknFilePrivate *) ekn_file_get_instance_private((EknFile*)d))
 
 static void
-ekn_file_init (EknFile *self)
+ekn_file_init (G_GNUC_UNUSED EknFile *self)
 {
-
 }
 
 static void
@@ -174,19 +173,20 @@ ekn_file_equal (GFile *file1, GFile *file2)
 }
 
 static gboolean
-ekn_file_is_native (GFile *self)
+ekn_file_is_native (G_GNUC_UNUSED GFile *self)
 {
   return TRUE;
 }
 
 static gboolean 
-ekn_file_has_uri_scheme (GFile *self, const char *uri_scheme)
+ekn_file_has_uri_scheme (G_GNUC_UNUSED GFile *self,
+                         const char *uri_scheme)
 {
   return g_str_equal ("ekn", uri_scheme);
 }
 
 static char *
-ekn_file_get_uri_scheme (GFile *self)
+ekn_file_get_uri_scheme (G_GNUC_UNUSED GFile *self)
 {
   return g_strdup ("ekn");
 }
@@ -218,7 +218,7 @@ ekn_file_get_parse_name (GFile *self)
 }
 
 static GFile *
-ekn_file_get_parent (GFile *self)
+ekn_file_get_parent (G_GNUC_UNUSED GFile *self)
 {
   return NULL;
 }
@@ -226,13 +226,16 @@ ekn_file_get_parent (GFile *self)
 static GFileInfo *
 ekn_file_query_info (GFile                *self,
                      const char           *attributes,
-                     GFileQueryInfoFlags   flags,
+                     G_GNUC_UNUSED GFileQueryInfoFlags flags,
                      GCancellable         *cancellable,
                      GError              **error)
 {
   EknFilePrivate *priv = EKN_FILE_PRIVATE (self);
   GFileAttributeMatcher *matcher;
   GFileInfo *info;
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return NULL;
 
   info    = g_file_info_new ();
   matcher = g_file_attribute_matcher_new (attributes);
@@ -251,12 +254,16 @@ ekn_file_query_info (GFile                *self,
 static GFileInputStream *
 ekn_file_read_fn (GFile *self, GCancellable *cancellable, GError **error)
 {
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return NULL;
+
   GInputStream *stream = eos_shard_blob_get_stream (EKN_FILE_PRIVATE (self)->blob);
   return _ekn_file_input_stream_wrapper_new (self, stream);
 }
 
 static void
-ekn_file_iface_init (gpointer g_iface, gpointer iface_data)
+ekn_file_iface_init (gpointer g_iface,
+                     G_GNUC_UNUSED gpointer iface_data)
 {
   GFileIface *iface = g_iface;
 

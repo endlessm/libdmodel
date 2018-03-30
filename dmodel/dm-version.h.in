@@ -1,0 +1,80 @@
+/* Copyright 2016 Endless Mobile, Inc. */
+
+#pragma once
+
+#if !(defined(_DM_INSIDE_DMODEL_H) || defined(COMPILING_DMODEL))
+#error "Please do not include this header file directly."
+#endif
+
+/**
+ * SECTION:version-information
+ * @title: Version Information
+ * @short_description: Variables and functions to check the library version
+ *
+ * Some macros to check the version of the content library.
+ */
+
+/**
+ * DM_MAJOR_VERSION:
+ *
+ * Major version number (API level) of the DModel library.
+ * For example, this is 0 for version 0.6.1.
+ */
+#define DM_MAJOR_VERSION (@DMODEL_MAJOR_VERSION@)
+/**
+ * DM_MINOR_VERSION:
+ *
+ * Minor version number of the DModel library.
+ * For example, this is 6 for version 0.6.1.
+ */
+#define DM_MINOR_VERSION (@DMODEL_MINOR_VERSION@)
+/**
+ * DM_MICRO_VERSION:
+ *
+ * Micro version number of the DModel library.
+ * For example, this is 1 for version 0.6.1.
+ */
+#define DM_MICRO_VERSION (@DMODEL_MICRO_VERSION@)
+
+/**
+ * DM_VERSION_S:
+ *
+ * Evaluates to a string with the version of DModel, useful for concatenating
+ * or for printing.
+ */
+#define DM_VERSION_S "@DMODEL_MAJOR_VERSION@.@DMODEL_MINOR_VERSION@.@DMODEL_MICRO_VERSION@"
+
+#define _DM_ENCODE_VERSION(major,minor,micro) \
+    ((major) << 24 | (minor) << 16 | (micro) << 8)
+
+/**
+ * DM_VERSION:
+ *
+ * Evaluates to an encoded integer representation of the DModel version, useful
+ * for compile-time version comparisons.
+ *
+ * Use %DM_ENCODE_VERSION to generate an integer representation that can be
+ * compared to the result of this macro, e.g.:
+ *
+ * |[<!-- language="C" -->
+ * #if DM_VERSION >= DM_ENCODE_VERSION (0, 6, 1)
+ *   // code that can be used with DModel 0.6.1 or later
+ * #elif
+ *   // code that can be used with earlier versions of DModel
+ * #endif
+ * ]|
+ */
+#define DM_VERSION \
+  (_DM_ENCODE_VERSION (DM_MAJOR_VERSION, DM_MINOR_VERSION, DM_MICRO_VERSION))
+
+/**
+ * DM_ENCODE_VERSION:
+ * @major: the major version number, e.g. 0
+ * @minor: the minor version number, e.g. 6
+ * @micro: the micro version number, e.g. 1
+ *
+ * Generates an integer-encoded representation of a DModel version, useful for
+ * compile-time comparisons with %DM_VERSION.
+ */
+#define DM_ENCODE_VERSION(major,minor,micro) \
+  (_DM_ENCODE_VERSION ((major), (minor), (micro))

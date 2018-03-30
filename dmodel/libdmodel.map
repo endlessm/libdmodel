@@ -1,0 +1,6 @@
+{
+    global:
+        dm_*;
+    local:
+        *;
+};
