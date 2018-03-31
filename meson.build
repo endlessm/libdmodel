@@ -56,11 +56,11 @@ config = configuration_data()
 config.set_quoted('DM_VERSION', meson.project_version())
 configure_file(configuration: config, output: 'config.h')
 
-requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json_glib-1.0', 'soup-2.4']
+requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json-glib-1.0', 'libsoup-2.4']
 requires_private = [
     'endless-0 @0@'.format(libendless_req),
     'eos-shard-0 @0@'.format(shard_req),
-    'xapian_glib-2.0',
+    'xapian-glib-2.0',
 ]
 pkg.generate(filebase: api_name, libraries: [main_library],
     description: 'Software development kit for applications for the developing world',
