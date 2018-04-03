@@ -25,7 +25,6 @@ endif
 
 libendless_req = '>= 0.5'
 shard_req = '>= 0.1.2'
-xapian_glib_req = '>= 1.7'
 
 gio = dependency('gio-2.0')
 glib = dependency('glib-2.0')
@@ -35,7 +34,7 @@ json_glib = dependency('json-glib-1.0')
 libendless = dependency('endless-0', version: libendless_req)
 shard = dependency('eos-shard-0', version: shard_req)
 soup = dependency('libsoup-2.4')
-xapian_glib = dependency('xapian-glib-1.0', version: xapian_glib_req)
+xapian_glib = dependency('xapian-glib-2.0')
 
 giomoduledir = gio.get_pkgconfig_variable('giomoduledir')
 
@@ -57,11 +56,11 @@ config = configuration_data()
 config.set_quoted('DM_VERSION', meson.project_version())
 configure_file(configuration: config, output: 'config.h')
 
-requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json_glib-1.0', 'soup-2.4']
+requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json-glib-1.0', 'libsoup-2.4']
 requires_private = [
-    'eos-shard-0 @0@'.format(shard_req),
-    'xapian_glib-1.0 @0@'.format(xapian_glib_req),
     'endless-0 @0@'.format(libendless_req),
+    'eos-shard-0 @0@'.format(shard_req),
+    'xapian-glib-2.0',
 ]
 pkg.generate(filebase: api_name, libraries: [main_library],
     description: 'Software development kit for applications for the developing world',
