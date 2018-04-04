@@ -15,6 +15,7 @@ G_BEGIN_DECLS
 #include "dm-dictionary-entry.h"
 #include "dm-domain.h"
 #include "dm-engine.h"
+#include "dm-enums.h"
 #include "dm-image.h"
 #include "dm-macros.h"
 #include "dm-media.h"
