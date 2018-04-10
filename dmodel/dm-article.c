@@ -230,7 +230,7 @@ dm_article_class_init (DmArticleClass *klass)
   dm_article_props[PROP_IS_SERVER_TEMPLATED] =
     g_param_spec_boolean ("is-server-templated", "Is Server Templated",
       "Is Server Templated",
-      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      TRUE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   /**
    * DmArticle:authors:
    *
