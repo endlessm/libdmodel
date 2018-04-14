@@ -256,36 +256,36 @@ dm_utils_free_gparam_array (GArray *params)
   g_array_free (params, TRUE);
 }
 
-#define EKN_ID_REGEX "^ekn://[^/]*/(?=[A-Za-z0-9]*)(?:.{16}|.{40})$"
+#define ID_REGEX "^ekn://[^/]*/(?=[A-Za-z0-9]*)(?:.{16}|.{40})$"
 /**
  * dm_utils_is_valid_id:
- * @ekn_id: the ekn id
+ * @id: the ID
  *
- * Checks if an ekn id is valid.
+ * Checks if a document ID is valid (see #DmContent:id).
  *
- * Returns: true if the ekn id is valid.
+ * Returns: %TRUE if the ID is valid.
  */
 gboolean
-dm_utils_is_valid_id (const char *ekn_id)
+dm_utils_is_valid_id (const char *id)
 {
-  g_autoptr(GRegex) ekn_id_regex = g_regex_new (EKN_ID_REGEX, 0, 0, NULL);
-  return g_regex_match (ekn_id_regex, ekn_id, 0, NULL);
+  g_autoptr(GRegex) id_regex = g_regex_new (ID_REGEX, 0, 0, NULL);
+  return g_regex_match (id_regex, id, 0, NULL);
 }
 
 /**
  * dm_utils_id_get_hash:
- * @ekn_id: the ekn id
+ * @id: the ID
  *
- * Gets a pointer to the hash part of an ekn id.
+ * Gets a pointer to the hash part of an ID.
  *
- * Returns: (transfer none): a pointer to the hash part of the ekn id.
+ * Returns: (transfer none): a pointer to the hash part of the ID, within @id.
  */
 const gchar *
-dm_utils_id_get_hash (const char *ekn_id)
+dm_utils_id_get_hash (const char *id)
 {
-  if (!dm_utils_is_valid_id (ekn_id))
+  if (!dm_utils_is_valid_id (id))
     return NULL;
-  const gchar *post_uri = ekn_id + strlen ("ekn://");
+  const char *post_uri = id + strlen ("ekn://");
   return g_strstr_len (post_uri, -1, "/") + 1;
 }
 

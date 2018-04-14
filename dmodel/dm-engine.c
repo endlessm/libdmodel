@@ -141,13 +141,13 @@ dm_engine_init (DmEngine *self)
 /**
  * dm_engine_test_link:
  * @self: the engine
- * @link: the ekn id of link to check for
+ * @link: the URI to check for
  * @error: #GError for error reporting.
  *
  * Attempts to determine if the given link corresponds to content within
  * the default domain.
  *
- * Returns: (transfer full) (nullable): Returns an EKN URI to that content if
+ * Returns: (transfer full) (nullable): Returns an ID to that content if
  * so, and %NULL otherwise.
  */
 gchar *
@@ -163,14 +163,14 @@ dm_engine_test_link (DmEngine *self,
 /**
  * dm_engine_test_link_for_app:
  * @self: the engine
- * @link: the ekn id of link to check for
+ * @link: the URI to check for
  * @app_id: the id of the application to load the object from
  * @error: #GError for error reporting.
  *
  * Attempts to determine if the given link corresponds to content within
  * the domain for the given application id.
  *
- * Returns: (transfer full) (nullable): Returns an EKN URI to that content if
+ * Returns: (transfer full) (nullable): Returns an ID to that content if
  * so, and %NULL otherwise.
  */
 gchar *
@@ -193,7 +193,7 @@ dm_engine_test_link_for_app (DmEngine *self,
 /**
  * dm_engine_get_object:
  * @self: the engine
- * @id: the ekn id of the object to load
+ * @id: the ID of the object to load
  * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
  * @callback: (scope async): callback to call when the request is satisfied.
  * @user_data: (closure): the data to pass to callback function.
@@ -258,13 +258,13 @@ on_domain_object_finished (GObject *source,
 /**
  * dm_engine_get_object_for_app:
  * @self: the engine
- * @id: the ekn id of the object to load
+ * @id: the ID of the object to load
  * @app_id: the id of the application to load the object from
  * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
  * @callback: (scope async): callback to call when the request is satisfied.
  * @user_data: (closure): the data to pass to callback function.
  *
- * Asynchronously load an object model for the given ekn_id
+ * Asynchronously load an object model for the given ID
  */
 void
 dm_engine_get_object_for_app (DmEngine *self,
