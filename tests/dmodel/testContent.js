@@ -22,7 +22,7 @@ describe('Content Object Model', function () {
 
     it('successfully creates new object from properties', function () {
         contentObject = DModel.Content.new_from_props({
-            ekn_id : 'ekn:text_editors/Emacs',
+            id: 'ekn:text_editors/Emacs',
             title : 'Emacs',
         });
         expect(contentObject.title).toEqual('Emacs');
@@ -44,7 +44,7 @@ describe('Content Object Model', function () {
 
     it('successfully creates a new object with no info at all', function () {
         contentObject = DModel.Content.new_from_props();
-        expect(contentObject.ekn_id.startsWith('ekn:///')).toBeTruthy();
+        expect(contentObject.id.startsWith('ekn:///')).toBeTruthy();
     });
 
     describe ('properties', function () {
@@ -53,7 +53,7 @@ describe('Content Object Model', function () {
         });
 
         it('should have an ID', function () {
-            expect(contentObject.ekn_id).toEqual(MOCK_CONTENT_DATA['@id']);
+            expect(contentObject.id).toEqual(MOCK_CONTENT_DATA['@id']);
         });
 
         it('should have a title', function () {

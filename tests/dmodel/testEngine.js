@@ -47,7 +47,7 @@ describe('Engine', function () {
     });
 
     describe('get_object_for_app', function () {
-        it('returns a model for valid app id, ekn id pair', function (done) {
+        it('returns a model for valid (app ID, ID) pair', function (done) {
             engine.get_object_for_app('ekn:///02463d24cb5690af2c8e898736ea8c80e0e77077',
                                       'com.endlessm.fake_test_app.en',
                                       null,
@@ -94,7 +94,7 @@ describe('Engine', function () {
             }).toThrow();
         });
 
-        it('return null for an ekn id that does not exist', function () {
+        it('returns null for an ID that does not exist', function () {
             let id = engine.test_link_for_app('http://www.bbc.com/news/',
                                               'com.endlessm.fake_test_app.en');
             expect(id).toBe(null);
@@ -115,7 +115,7 @@ describe('Engine', function () {
         });
 
         describe('get_object', function () {
-            it('returns a model for valid ekn id', function () {
+            it('returns a model for valid ID', function () {
                 engine.get_object('ekn:///02463d24cb5690af2c8e898736ea8c80e0e77077',
                                   null,
                                   function (engine, result) {
