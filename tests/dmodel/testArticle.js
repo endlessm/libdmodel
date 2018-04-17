@@ -9,7 +9,7 @@ describe ('Article Object Model', function () {
         jasmine.addMatchers(InstanceOfMatcher.customMatchers);
 
         jsonld = {
-            '@id': 'ekn:asoiaf/House_Greyjoy',
+            '@id': 'ekn:///01234567890123456789',
             'title': 'House Greyjoy',
             'synopsis': 'We Do Not Sow',
             'authors': ['Dalton Greyjoy', 'Dagon Greyjoy'],
@@ -20,7 +20,7 @@ describe ('Article Object Model', function () {
                     'hasIndex': 0,
                     'hasIndexLabel': '1',
                     'hasLabel': 'History',
-                    'hasContent': 'ekn://asoiaf/House_Greyjoy#History'
+                    'hasContent': 'ekn:///01234567890123456789#History'
                 },
             ],
         };

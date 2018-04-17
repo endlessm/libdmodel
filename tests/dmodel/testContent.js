@@ -1,7 +1,7 @@
 const {DModel} = imports.gi;
 
 const MOCK_CONTENT_DATA = {
-    '@id': 'ekn:text_editors/Emacs',
+    '@id': 'ekn:///12345678901234567890',
     'title': 'Emacs',
     'originalURI': 'http://en.wikipedia.org/wiki/Emacs',
     'language': 'pt-BR',
@@ -9,8 +9,8 @@ const MOCK_CONTENT_DATA = {
     'lastModifiedDate': '2013-05-09T04:12:44',
     'tags': ['uninstall plz', 'awful', 'butterflies'],
     'license': 'Creative-Commons',
-    'thumbnail': 'ekn://text_editors/Stallman.jpg',
-    'resources': ['ekn://text_editors/stallman_the_bard', 'ekn://text_editors/emacs_screenshot'],
+    'thumbnail': 'ekn:///34567890123456789012',
+    'resources': ['ekn:///45678901234567890123', 'ekn:///56789012345678901234'],
     'featured': true,
     'discoveryFeedContent': {'blurbs':
         ['10 Facts About Emacs That Will Blow Your Mind. #7 Knocked My Socks Off!'],
@@ -22,7 +22,7 @@ describe('Content Object Model', function () {
 
     it('successfully creates new object from properties', function () {
         contentObject = DModel.Content.new_from_props({
-            id: 'ekn:text_editors/Emacs',
+            id: 'ekn:///12345678901234567890',
             title : 'Emacs',
         });
         expect(contentObject.title).toEqual('Emacs');

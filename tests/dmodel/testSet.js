@@ -5,7 +5,7 @@ describe('Set object model', function () {
 
     beforeEach(function () {
         jsonld = {
-            '@id': 'ekn://physics-en/ba750fd50f18382198e7876c6eb3b95a4759cf12',
+            '@id': 'ekn:///ba750fd50f18382198e7876c6eb3b95a4759cf12',
             '@type': 'ekn://_vocab/SetObject',
             '@context': 'ekn://_context/SetObject',
             tags: ['EknHomePageTag', 'EknSetObject'],
