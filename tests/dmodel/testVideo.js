@@ -3,14 +3,14 @@ const {DModel} = imports.gi;
 const InstanceOfMatcher = imports.tests.InstanceOfMatcher;
 
 const MOCK_VIDEO_DATA = {
-    '@id': 'ekn://rick/never',
+    '@id': 'ekn:///78901234567890123456',
     'title': 'Never Gonna Give You Up (Never Gonna Let You Down)',
     'caption': 'If this song was sushi, it would be a Rick Roll',
     'transcript': 'We\'re no strangers to love, etc etc etc',
     'duration': '666',
     'height': '666',
     'width': '666',
-    'poster': 'ekn://rick/poster',
+    'poster': 'ekn:///89012345678901234567',
 };
 
 describe('Video Object Model', function () {
@@ -35,7 +35,7 @@ describe('Video Object Model', function () {
         it('should marshal properties', function () {
             expect(videoObject.duration).toBe(666);
             expect(videoObject.transcript).toBe('We\'re no strangers to love, etc etc etc');
-            expect(videoObject.poster_uri).toBe('ekn://rick/poster');
+            expect(videoObject.poster_uri).toBe('ekn:///89012345678901234567');
         });
 
         it('should inherit properties set by parent class (DModel.Media)', function () {

@@ -449,23 +449,23 @@ dm_query_class_init (DmQueryClass *klass)
   /**
    * DmQuery:ids:
    *
-   * A list of specific ekn ids to limit the search to. Can be used with an
+   * A list of specific IDs to limit the search to. Can be used with an
    * empty query to retrieve the given set of ids.
    */
   dm_query_props[PROP_IDS] =
     g_param_spec_boxed ("ids", "Ids",
-      "A list of model ids",
+      "A list of specific IDs to limit the search to",
       G_TYPE_STRV,
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:excluded-ids:
    *
-   * A list of specific ekn ids to exclude from the search.
+   * A list of specific IDs to exclude from the search.
    */
   dm_query_props[PROP_EXCLUDED_IDS] =
     g_param_spec_boxed ("excluded-ids", "Excluded ids",
-      "A list of specific ekn ids to exclude from the search",
+      "A list of specific IDs to exclude from the search",
       G_TYPE_STRV,
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 

@@ -39,7 +39,7 @@ dm_default_vfs_set_shards (GSList *shards);
 
 DM_AVAILABLE_IN_ALL
 gboolean
-dm_utils_is_valid_id (const char *ekn_id);
+dm_utils_is_valid_id (const char *id);
 
 DM_AVAILABLE_IN_ALL
 GFile *

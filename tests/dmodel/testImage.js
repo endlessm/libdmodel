@@ -3,7 +3,7 @@ const {DModel} = imports.gi;
 const InstanceOfMatcher = imports.tests.InstanceOfMatcher;
 
 const MOCK_IMAGE_DATA = {
-    '@id': 'ekn://rick/astley',
+    '@id': 'ekn:///67890123456789012345',
     'title': 'Rick Astley: The Man, The Myth, The Legend',
     'caption': 'Great musician, or greatest?',
     'height': '666',

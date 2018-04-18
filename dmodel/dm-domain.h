@@ -19,12 +19,12 @@ G_DECLARE_FINAL_TYPE (DmDomain, dm_domain, DM, DOMAIN, GObject)
 /**
  * DmDomainError:
  * @DM_DOMAIN_ERROR_APP_ID_NOT_SET: App id property not set on object
- * @DM_DOMAIN_ERROR_ID_NOT_FOUND: Requested ekn id object not found
+ * @DM_DOMAIN_ERROR_ID_NOT_FOUND: Requested ID not found
  * @DM_DOMAIN_ERROR_BAD_MANIFEST: Error found while parsing the manifest.json
  * @DM_DOMAIN_ERROR_BAD_RESULTS: Error found while parsing the results json from xapian
  * @DM_DOMAIN_ERROR_UNSUPPORTED_VERSION: Unsupported version of content found
  * @DM_DOMAIN_ERROR_PATH_NOT_FOUND: Provided path was not found
- * @DM_DOMAIN_ERROR_ID_NOT_VALID: Requested ekn id is not valid
+ * @DM_DOMAIN_ERROR_ID_NOT_VALID: Requested ID is not valid
  * @DM_DOMAIN_ERROR_EMPTY: Content is empty
  *
  * Error enumeration for domain related errors.

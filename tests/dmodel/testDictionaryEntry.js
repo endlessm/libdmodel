@@ -9,7 +9,7 @@ describe('Dictionary Object Model', function() {
         jasmine.addMatchers(InstanceOfMatcher.customMatchers);
 
         jsonld = {
-            '@id': 'ekn:word/Entreaty',
+            '@id': 'ekn:///23456789012345678901',
             'word': 'entreaty',
             'definition': 'An earnest request or petition; a plea.',
             'partOfSpeech': 'noun',

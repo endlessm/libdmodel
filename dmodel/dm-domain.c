@@ -539,13 +539,13 @@ dm_domain_get_shards (DmDomain *self)
 /**
  * dm_domain_test_link:
  * @self: the domain
- * @link: the ekn id of link to check for
+ * @link: the URI to check for
  * @error: #GError for error reporting.
  *
  * Attempts to determine if the given link corresponds to content within
  * this domain.
  *
- * Returns: (transfer full) (nullable): Returns an EKN URI to that content if
+ * Returns: (transfer full) (nullable): Returns an ID to that content if
  * so, and %NULL otherwise.
  */
 gchar *
@@ -591,12 +591,12 @@ on_metadata_stream_parsed (GObject *source,
 /**
  * dm_domain_get_object:
  * @self: the domain
- * @id: the ekn id of the object to load
+ * @id: the ID of the object to load
  * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
  * @callback: (scope async): callback to call when the request is satisfied.
  * @user_data: (closure): the data to pass to callback function.
  *
- * Asynchronously load an object model for the given ekn_id
+ * Asynchronously load an object model for the given ID
  */
 void
 dm_domain_get_object (DmDomain *self,

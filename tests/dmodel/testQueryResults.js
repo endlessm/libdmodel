@@ -1,12 +1,11 @@
 const {DModel} = imports.gi;
 
-const EXPECTED_EKN_IDS = ['ekn:///12345678', 'ekn:///87654321'];
+const EXPECTED_IDS = ['ekn:///12345678', 'ekn:///87654321'];
 
 describe('Query results', function () {
     let results;
     beforeEach(function () {
-        let models = EXPECTED_EKN_IDS.map(id =>
-            new DModel.Content({ ekn_id: id }));
+        let models = EXPECTED_IDS.map(id => new DModel.Content({id}));
         results = DModel.QueryResults.new_for_testing(models);
     });
 
@@ -20,11 +19,11 @@ describe('Query results', function () {
 
     it('can access its results list by getter', function () {
         let list = results.get_models();
-        expect(list.map(model => model.ekn_id)).toEqual(EXPECTED_EKN_IDS);
+        expect(list.map(({id}) => id)).toEqual(EXPECTED_IDS);
     });
 
     it('can access its results list by property', function () {
         let list = results.models;
-        expect(list.map(model => model.ekn_id)).toEqual(EXPECTED_EKN_IDS);
+        expect(list.map(({id}) => id)).toEqual(EXPECTED_IDS);
     });
 });

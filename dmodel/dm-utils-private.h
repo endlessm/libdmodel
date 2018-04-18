@@ -16,6 +16,6 @@ void
 dm_utils_free_gparam_array (GArray *params);
 
 const gchar *
-dm_utils_id_get_hash (const char *ekn_id);
+dm_utils_id_get_hash (const char *id);
 
 G_END_DECLS

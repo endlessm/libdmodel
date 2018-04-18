@@ -17,7 +17,7 @@
  * knowledge app.
  */
 typedef struct {
-  gchar *ekn_id;
+  char *id;
   gchar *title;
   gchar *original_title;
   gchar *original_uri;
@@ -40,7 +40,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (DmContent, dm_content, G_TYPE_OBJECT)
 
 enum {
   PROP_0,
-  PROP_EKN_ID,
+  PROP_ID,
   PROP_TITLE,
   PROP_ORIGINAL_TITLE,
   PROP_ORIGINAL_URI,
@@ -73,8 +73,8 @@ dm_content_get_property (GObject *object,
 
   switch (prop_id)
     {
-    case PROP_EKN_ID:
-      g_value_set_string (value, priv->ekn_id);
+    case PROP_ID:
+      g_value_set_string (value, priv->id);
       break;
 
     case PROP_TITLE:
@@ -157,9 +157,9 @@ dm_content_set_property (GObject *object,
 
   switch (prop_id)
     {
-    case PROP_EKN_ID:
-      g_clear_pointer (&priv->ekn_id, g_free);
-      priv->ekn_id = g_value_dup_string (value);
+    case PROP_ID:
+      g_clear_pointer (&priv->id, g_free);
+      priv->id = g_value_dup_string (value);
       break;
 
     case PROP_TITLE:
@@ -251,7 +251,7 @@ dm_content_constructed (GObject *object)
   DmContent *self = DM_CONTENT (object);
   DmContentPrivate *priv = dm_content_get_instance_private (self);
 
-  if (g_strcmp0 (priv->ekn_id, "") == 0)
+  if (g_strcmp0 (priv->id, "") == 0)
     {
       // Note: This is only for ensuring the invariant of "each model has an
       // EKN ID" in tests. It is illegal to create a model in production code
@@ -262,8 +262,8 @@ dm_content_constructed (GObject *object)
                                          (guchar *) &MOCKED_OBJECTS,
                                          sizeof (MOCKED_OBJECTS));
       MOCKED_OBJECTS++;
-      g_free (priv->ekn_id);
-      priv->ekn_id = g_strconcat ("ekn:///", sum, NULL);
+      g_free (priv->id);
+      priv->id = g_strconcat ("ekn:///", sum, NULL);
     }
 }
 
@@ -273,7 +273,7 @@ dm_content_finalize (GObject *object)
   DmContent *self = DM_CONTENT (object);
   DmContentPrivate *priv = dm_content_get_instance_private (self);
 
-  g_clear_pointer (&priv->ekn_id, g_free);
+  g_clear_pointer (&priv->id, g_free);
   g_clear_pointer (&priv->title, g_free);
   g_clear_pointer (&priv->original_title, g_free);
   g_clear_pointer (&priv->original_uri, g_free);
@@ -303,16 +303,19 @@ dm_content_class_init (DmContentClass *klass)
   object_class->finalize = dm_content_finalize;
 
   /**
-   * DmContent:ekn-id:
+   * DmContent:id:
    *
    * Unique ID of the model
    *
-   * This is an internal ID assigned by EKN.
+   * This is an internal ID assigned when the content is put into a database.
+   * It must start with `ekn:///` followed by 40 hex digits (the "hash" part.)
+   * See also dm_utils_is_valid_id().
+   *
    * If none is provided, the model will generate its own id.
+   * This is useful for testing, for example.
    */
-  dm_content_props[PROP_EKN_ID] =
-    g_param_spec_string ("ekn-id", "Object's ID",
-      "The ID of a document or media object",
+  dm_content_props[PROP_ID] =
+    g_param_spec_string ("id", "ID", "The ID of a document or media object",
       "", G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   /**
    * DmContent:title:
@@ -450,11 +453,11 @@ dm_content_class_init (DmContentClass *klass)
   /**
    * DmContent:resources:
    *
-   * A list of ekn ids of resources belonging to the model.
+   * A list of IDs of resources belonging to the model.
    */
   dm_content_props[PROP_RESOURCES] =
     g_param_spec_boxed ("resources", "Resources",
-      "A list of ekn ids of resources belonging to the model.",
+      "A list of IDs of resources belonging to the model.",
       G_TYPE_STRV,
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
@@ -514,7 +517,7 @@ dm_content_add_json_to_params (JsonNode *node,
   GObjectClass *klass = g_type_class_ref (DM_TYPE_CONTENT);
 
   dm_utils_append_gparam_from_json_node (json_object_get_member (object, "@id"),
-                                         g_object_class_find_property (klass, "ekn-id"),
+                                         g_object_class_find_property (klass, "id"),
                                          params);
   dm_utils_append_gparam_from_json_node (json_object_get_member (object, "contentType"),
                                          g_object_class_find_property (klass, "content-type"),
@@ -635,7 +638,7 @@ dm_content_get_content_stream (DmContent *self,
   g_return_val_if_fail (DM_IS_CONTENT (self), NULL);
 
   DmContentPrivate *priv = dm_content_get_instance_private (self);
-  g_autoptr (GFile) file = g_file_new_for_uri (priv->ekn_id);
+  g_autoptr (GFile) file = g_file_new_for_uri (priv->id);
   return g_file_read (file, NULL, error);
 }
 
