@@ -299,30 +299,17 @@ dm_utils_id_get_hash (const char *id)
  * file.
  *
  * Returns: (transfer full): the version, or NULL if an error occurred
+ *
+ * Deprecated: Going forward, each major version of libdmodel only works with
+ * one version of the on-disk format. It's the caller's responsibility to
+ * choose the right version of libdmodel that works with an app's data.
  */
 gchar *
-dm_get_ekn_version (const char *app_id,
-                    GCancellable *cancellable,
-                    GError **error)
+dm_get_ekn_version (const char *app_id G_GNUC_UNUSED,
+                    GCancellable *cancellable G_GNUC_UNUSED,
+                    GError **error G_GNUC_UNUSED)
 {
-  g_autoptr(GFile) dir = dm_get_data_dir (app_id);
-
-  // Sanity check
-  if (dir == NULL)
-    {
-      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-                   "No data dir found for app id %s", app_id);
-      return NULL;
-    }
-
-  g_autoptr(GFile) ekn_version_file = g_file_get_child (dir, "EKN_VERSION");
-  g_autofree gchar *contents = NULL;
-  if (!g_file_load_contents (ekn_version_file, cancellable, &contents,
-                             NULL, NULL, error))
-    return NULL;
-
-  gchar *stripped = g_strstrip (contents);
-  return g_strdup (stripped);
+  return g_strdup ("3");
 }
 
 /**

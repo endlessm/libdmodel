@@ -49,7 +49,7 @@ DM_AVAILABLE_IN_ALL
 GList *
 dm_get_extensions_dirs (const char *app_id);
 
-DM_AVAILABLE_IN_ALL
+DM_DEPRECATED_IN_0_2
 gchar *
 dm_get_ekn_version (const char *app_id,
                     GCancellable *cancellable,
