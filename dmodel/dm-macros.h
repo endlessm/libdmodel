@@ -45,6 +45,14 @@
 #define DM_VERSION_0_0 (G_ENCODE_VERSION (0, 0))
 
 /**
+ * DM_VERSION_0_2:
+ * A pre-processor macro that evaluates to the 0.2 version of DModel, in a
+ * format that can be used by %DM_VERSION_MIN_REQUIRED and
+ * %DM_VERSION_MAX_ALLOWED.
+ */
+#define DM_VERSION_0_2 (G_ENCODE_VERSION (0, 2))
+
+/**
  * DM_VERSION_CUR_STABLE:
  *
  * Evaluates to the current stable version.
@@ -132,3 +140,19 @@
 
 /* unconditional: we can't have an earlier API version */
 #define DM_AVAILABLE_IN_ALL _DM_EXTERN
+
+/* 0.2 series */
+
+#if DM_VERSION_MIN_REQUIRED >= DM_VERSION_0_2
+# define DM_DEPRECATED_IN_0_2         DM_DEPRECATED
+# define DM_DEPRECATED_IN_0_2_FOR(f)  DM_DEPRECATED_FOR(f)
+#else
+# define DM_DEPRECATED_IN_0_2         _DM_EXTERN
+# define DM_DEPRECATED_IN_0_2_FOR(f)  _DM_EXTERN
+#endif
+
+#if DM_VERSION_MAX_ALLOWED < DM_VERSION_0_2
+# define DM_AVAILABLE_IN_0_2          DM_UNAVAILABLE(0, 2)
+#else
+# define DM_AVAILABLE_IN_0_2          _DM_EXTERN
+#endif

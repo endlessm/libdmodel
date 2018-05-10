@@ -1030,9 +1030,7 @@ dm_domain_read_uri (DmDomain *self,
  * @cancellable: optional #GCancellable object, %NULL to ignore.
  * @error: #GError for error reporting
  *
- * Gets a domain object for a given app id. Currently only EKN_VERSION 3 domains
- * are supported, but we may bring back multiple version of our on disk database
- * format in the future.
+ * Gets a domain object for a given app id.
  *
  * Returns: (transfer full): the newly created domain object
  */
@@ -1043,19 +1041,6 @@ dm_domain_get_for_app_id (const char *app_id,
                           GCancellable *cancellable,
                           GError **error)
 {
-  g_autofree gchar *ekn_version = dm_get_ekn_version (app_id, cancellable,
-                                                      error);
-
-  if (ekn_version == NULL)
-    return NULL;
-
-  if (!g_str_equal (ekn_version, "3"))
-    {
-      g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_UNSUPPORTED_VERSION,
-                   "Invalid ekn version for app ID %s: %s", app_id, ekn_version);
-      return NULL;
-    }
-
   DmDomain *domain = g_object_new (DM_TYPE_DOMAIN,
                                    "app-id", app_id,
                                    "path", path,

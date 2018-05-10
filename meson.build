@@ -1,6 +1,6 @@
 # Copyright 2018 Endless Mobile, Inc.
 
-project('dmodel', 'c', version: '0.0.0', license: 'LGPL2.1+',
+project('dmodel', 'c', version: '0.1.0', license: 'LGPL2.1+',
     meson_version: '>= 0.42.0',
     default_options: ['c_std=c99', 'warning_level=3'])
 
