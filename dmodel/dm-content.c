@@ -31,6 +31,7 @@ typedef struct {
   gchar *license;
   gboolean featured;
   gboolean can_print;
+  gboolean can_export;
   char **tags;
   char **resources;
   JsonObject *discovery_feed_content;
@@ -59,6 +60,7 @@ enum {
   PROP_DISCOVERY_FEED_CONTENT,
   PROP_SEQUENCE_NUMBER,
   PROP_CAN_PRINT,
+  PROP_CAN_EXPORT,
   NPROPS
 };
 
@@ -145,6 +147,10 @@ dm_content_get_property (GObject *object,
 
     case PROP_CAN_PRINT:
       g_value_set_boolean (value, priv->can_print);
+      break;
+
+    case PROP_CAN_EXPORT:
+      g_value_set_boolean (value, priv->can_export);
       break;
 
     default:
@@ -248,6 +254,10 @@ dm_content_set_property (GObject *object,
 
     case PROP_CAN_PRINT:
       priv->can_print = g_value_get_boolean (value);
+      break;
+
+    case PROP_CAN_EXPORT:
+      priv->can_export = g_value_get_boolean (value);
       break;
 
     default:
@@ -505,6 +515,15 @@ dm_content_class_init (DmContentClass *klass)
     g_param_spec_boolean ("can-print", "Can Print",
       "Whether this content can be printed or not",
       FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  /**
+   * DmContent:can-export:
+   *
+   * Whether this content can be exported or not.
+   */
+  dm_content_props[PROP_CAN_EXPORT] =
+    g_param_spec_boolean ("can-export", "Can Export",
+      "Whether this content can be exported or not",
+      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, NPROPS, dm_content_props);
 }
@@ -588,6 +607,9 @@ dm_content_add_json_to_params (JsonNode *node,
                                          params);
   dm_utils_append_gparam_from_json_node (json_object_get_member (object, "canPrint"),
                                          g_object_class_find_property (klass, "can-print"),
+                                         params);
+  dm_utils_append_gparam_from_json_node (json_object_get_member (object, "canExport"),
+                                         g_object_class_find_property (klass, "can-export"),
                                          params);
   g_type_class_unref (klass);
 }
