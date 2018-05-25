@@ -30,6 +30,7 @@ typedef struct {
   gchar *last_modified_date;
   gchar *license;
   gboolean featured;
+  gboolean can_print;
   char **tags;
   char **resources;
   JsonObject *discovery_feed_content;
@@ -57,6 +58,7 @@ enum {
   PROP_RESOURCES,
   PROP_DISCOVERY_FEED_CONTENT,
   PROP_SEQUENCE_NUMBER,
+  PROP_CAN_PRINT,
   NPROPS
 };
 
@@ -139,6 +141,10 @@ dm_content_get_property (GObject *object,
 
     case PROP_SEQUENCE_NUMBER:
       g_value_set_uint (value, priv->sequence_number);
+      break;
+
+    case PROP_CAN_PRINT:
+      g_value_set_boolean (value, priv->can_print);
       break;
 
     default:
@@ -238,6 +244,10 @@ dm_content_set_property (GObject *object,
 
     case PROP_SEQUENCE_NUMBER:
       priv->sequence_number = g_value_get_uint (value);
+      break;
+
+    case PROP_CAN_PRINT:
+      priv->can_print = g_value_get_boolean (value);
       break;
 
     default:
@@ -486,6 +496,15 @@ dm_content_class_init (DmContentClass *klass)
       "Determines the position of the model in a sequence",
       0, G_MAXUINT, G_MAXUINT,
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  /**
+   * DmContent:can-print:
+   *
+   * Whether this content can be printed or not.
+   */
+  dm_content_props[PROP_CAN_PRINT] =
+    g_param_spec_boolean ("can-print", "Can Print",
+      "Whether this content can be printed or not",
+      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, NPROPS, dm_content_props);
 }
@@ -566,6 +585,9 @@ dm_content_add_json_to_params (JsonNode *node,
                                          params);
   dm_utils_append_gparam_from_json_node (json_object_get_member (object, "sequenceNumber"),
                                          g_object_class_find_property (klass, "sequence-number"),
+                                         params);
+  dm_utils_append_gparam_from_json_node (json_object_get_member (object, "canPrint"),
+                                         g_object_class_find_property (klass, "can-print"),
                                          params);
   g_type_class_unref (klass);
 }
