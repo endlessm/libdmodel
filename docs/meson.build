@@ -29,10 +29,11 @@ gnome.gtkdoc(meson.project_name(), dependencies: main_library_dependency,
 
 # Tests
 
-gtkdoc_check = find_program('gtkdoc-check')
-gtkdoc_tests_env = environment()
-gtkdoc_tests_env.set('DOC_MODULE', meson.project_name())
-gtkdoc_tests_env.set('DOC_MAIN_SGML_FILE', main_xml)
-gtkdoc_tests_env.set('SRCDIR', meson.current_source_dir())
-gtkdoc_tests_env.set('BUILDDIR', meson.current_build_dir())
-test('gtk-doc sanity check', gtkdoc_check, env: gtkdoc_tests_env)
+# See https://github.com/mesonbuild/meson/issues/1844
+# gtkdoc_check = find_program('gtkdoc-check')
+# gtkdoc_tests_env = environment()
+# gtkdoc_tests_env.set('DOC_MODULE', meson.project_name())
+# gtkdoc_tests_env.set('DOC_MAIN_SGML_FILE', main_xml)
+# gtkdoc_tests_env.set('SRCDIR', meson.current_source_dir())
+# gtkdoc_tests_env.set('BUILDDIR', meson.current_build_dir())
+# test('gtk-doc sanity check', gtkdoc_check, env: gtkdoc_tests_env)
