@@ -514,7 +514,7 @@ dm_content_class_init (DmContentClass *klass)
   dm_content_props[PROP_CAN_PRINT] =
     g_param_spec_boolean ("can-print", "Can Print",
       "Whether this content can be printed or not",
-      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      TRUE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   /**
    * DmContent:can-export:
    *
@@ -523,7 +523,7 @@ dm_content_class_init (DmContentClass *klass)
   dm_content_props[PROP_CAN_EXPORT] =
     g_param_spec_boolean ("can-export", "Can Export",
       "Whether this content can be exported or not",
-      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      TRUE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, NPROPS, dm_content_props);
 }
