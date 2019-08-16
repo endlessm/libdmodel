@@ -166,7 +166,7 @@ describe('Query', function () {
                 mode: DModel.QueryMode.DELIMITED,
             });
             expect(query_obj.get_query(qp).get_description())
-                .toEqual('Query((XEXACTShappy_nwe_year@1 OR ((Shappy@1 OR (Snwe@2 OR Snew@3)) OR ((SYNONYM WILDCARD OR Syear) OR Syear@4))))');
+                .toEqual('Query((XEXACTShappy_nwe_year@1 OR (((Shappy@1 OR Snwe@2) OR ((SYNONYM WILDCARD OR Syear) OR Syear@3)) OR ((Shappy@1 OR Snew@2) OR ((SYNONYM WILDCARD OR Syear) OR Syear@3)))))');
         });
 
         it('filters requested IDs and tags', function () {
@@ -231,7 +231,7 @@ describe('Query', function () {
                 match: DModel.QueryMatch.TITLE_SYNOPSIS,
             });
             expect(query_obj.get_query(qp).get_description())
-                .toEqual('Query((((XEXACTSbeatles@1 OR (Sbeatles@1 OR Sbeetles@2)) OR ((SYNONYM WILDCARD OR beatles) OR beatles@1)) OR ((SYNONYM WILDCARD OR beetles) OR beetles@1)))')
+                .toEqual('Query((((XEXACTSbeatles@1 OR (((SYNONYM WILDCARD OR Sbeatles) OR Sbeatles@1) OR ((SYNONYM WILDCARD OR Sbeetles) OR Sbeetles@1))) OR ((SYNONYM WILDCARD OR beatles) OR beatles@1)) OR ((SYNONYM WILDCARD OR beetles) OR beetles@1)))')
         });
 
         it('stems terms if a stemmer is added to the query parser', function () {
