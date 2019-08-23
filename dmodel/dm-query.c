@@ -571,45 +571,19 @@ get_exact_title_clause (DmQuery *self,
 
 static XapianQuery *
 get_title_clause (XapianQueryParser *qp,
-                  char **terms,
-                  char **corrected_terms,
+                  gchar **raw_terms,
+                  gchar **raw_corrected_terms,
                   GError **error_out)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(XapianQuery) base_clause = NULL;
-  g_autoptr(XapianQuery) corrected_clause = NULL;
-  g_autoptr(XapianQuery) retval = NULL;
 
-  guint terms_length = g_strv_length (terms);
-  guint corrected_terms_length = corrected_terms != NULL
-                               ? g_strv_length (corrected_terms)
-                               : 0;
+  g_autofree gchar *parser_string = g_strjoinv (" ", raw_terms);
 
-  g_auto(GStrv) parser_terms = g_new0 (gchar *, terms_length + 1);
-  g_auto(GStrv) corrected_parser_terms = g_new0 (gchar *, corrected_terms_length + 1);
-
-  for (guint i = 0; i < terms_length; i++)
-    {
-      gchar *term = terms[i];
-      if (term != NULL)
-        parser_terms[i] = g_strdup(term);
-    }
-
-  for (guint i = 0; i < corrected_terms_length; i++)
-    {
-      gchar *corrected_term = corrected_terms[i];
-      if (corrected_term != NULL)
-        corrected_parser_terms[i] = g_strdup(corrected_term);
-    }
-
-  g_autofree gchar *parser_string = g_strjoinv (" ", parser_terms);
-  g_autofree gchar *corrected_parser_string = g_strjoinv (" ", corrected_parser_terms);
-
-  if (parser_string != NULL)
-    base_clause = xapian_query_parser_parse_query_full (
-      qp, parser_string,
-      XAPIAN_QUERY_PARSER_FEATURE_DEFAULT | XAPIAN_QUERY_PARSER_FEATURE_PARTIAL,
-      XAPIAN_PREFIX_TITLE, &error);
+  base_clause = xapian_query_parser_parse_query_full (
+    qp, parser_string,
+    XAPIAN_QUERY_PARSER_FEATURE_DEFAULT | XAPIAN_QUERY_PARSER_FEATURE_PARTIAL,
+    XAPIAN_PREFIX_TITLE, &error);
 
   if (error != NULL)
     {
@@ -617,26 +591,26 @@ get_title_clause (XapianQueryParser *qp,
       return NULL;
     }
 
-  if (corrected_parser_string != NULL)
-    corrected_clause = xapian_query_parser_parse_query_full (
-      qp, corrected_parser_string,
-      XAPIAN_QUERY_PARSER_FEATURE_DEFAULT | XAPIAN_QUERY_PARSER_FEATURE_PARTIAL,
-      XAPIAN_PREFIX_TITLE, &error);
-
-  if (error != NULL)
+  if (raw_corrected_terms != NULL)
     {
-      g_propagate_error (error_out, error);
-      return NULL;
-    }
+      g_autofree gchar *corrected_parser_string = g_strjoinv (" ", raw_corrected_terms);
+      g_autoptr(XapianQuery) corrected_clause = xapian_query_parser_parse_query_full (
+        qp, corrected_parser_string,
+        XAPIAN_QUERY_PARSER_FEATURE_DEFAULT,
+        XAPIAN_PREFIX_TITLE, &error);
 
-  if (base_clause != NULL && corrected_clause != NULL)
-    retval = xapian_query_new_for_pair (XAPIAN_QUERY_OP_OR, base_clause, corrected_clause);
-  else if (base_clause != NULL)
-    retval = base_clause;
+      if (error != NULL)
+        {
+          g_propagate_error (error_out, error);
+          return NULL;
+        }
+
+      return xapian_query_new_for_pair (XAPIAN_QUERY_OP_OR, base_clause, corrected_clause);
+    }
   else
-    retval = corrected_clause;
-
-  return g_steal_pointer (&retval);
+    {
+      return g_steal_pointer (&base_clause);
+    }
 }
 
 static XapianQuery *
