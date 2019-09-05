@@ -17,11 +17,10 @@
 #define MAX_TERM_LENGTH 245
 
 #define XAPIAN_PREFIX_EXACT_TITLE "XEXACTS"
+#define XAPIAN_PREFIX_TITLE "S"
 #define XAPIAN_PREFIX_CONTENT_TYPE "T"
 #define XAPIAN_PREFIX_ID "Q"
 #define XAPIAN_PREFIX_TAG "K"
-
-#define QUERY_PARSER_PREFIX_TITLE "title:"
 
 #define XAPIAN_SYNTAX_REGEX "\\(|\\)|\\+|\\-|\\'|\\\""
 #define XAPIAN_TERM_REGEX "AND|OR|NOT|XOR|NEAR|ADJ"
@@ -572,57 +571,46 @@ get_exact_title_clause (DmQuery *self,
 
 static XapianQuery *
 get_title_clause (XapianQueryParser *qp,
-                  char **terms,
-                  char **corrected_terms,
+                  gchar **raw_terms,
+                  gchar **raw_corrected_terms,
                   GError **error_out)
 {
   g_autoptr(GError) error = NULL;
-  guint terms_length = g_strv_length (terms);
-  guint corrected_terms_length = corrected_terms != NULL
-                               ? g_strv_length (corrected_terms)
-                               : 0;
+  g_autoptr(XapianQuery) base_clause = NULL;
 
-  guint max_length = MAX (terms_length, corrected_terms_length);
+  g_autofree gchar *parser_string = g_strjoinv (" ", raw_terms);
 
-  g_auto(GStrv) title_terms = g_new0 (gchar *, max_length + 1);
+  base_clause = xapian_query_parser_parse_query_full (
+    qp, parser_string,
+    XAPIAN_QUERY_PARSER_FEATURE_DEFAULT | XAPIAN_QUERY_PARSER_FEATURE_PARTIAL,
+    XAPIAN_PREFIX_TITLE, &error);
 
-  for (guint i = 0; i < max_length; i++)
-    {
-      g_autofree char *term = NULL;
-      if (i < terms_length)
-        term = g_strconcat (QUERY_PARSER_PREFIX_TITLE, terms[i], NULL);
-
-      g_autofree char *corrected_term = NULL;
-      if (i < corrected_terms_length)
-        corrected_term = g_strconcat (QUERY_PARSER_PREFIX_TITLE,
-                                      corrected_terms[i], NULL);
-
-      /* Discard duplicates */
-      if (g_strcmp0 (term, corrected_term) == 0)
-        g_clear_pointer (&corrected_term, g_free);
-
-      if (term != NULL && corrected_term != NULL)
-        title_terms[i] = g_strdup_printf ("(%s OR %s)", term, corrected_term);
-      else if (term != NULL)
-        title_terms[i] = g_steal_pointer (&term);
-      else
-        title_terms[i] = g_steal_pointer (&corrected_term);
-    }
-
-  g_autofree char *parser_string = g_strjoinv (" ", title_terms);
-
-  g_autoptr(XapianQuery) retval =
-    xapian_query_parser_parse_query_full (qp, parser_string,
-                                          XAPIAN_QUERY_PARSER_FEATURE_DEFAULT |
-                                          XAPIAN_QUERY_PARSER_FEATURE_PARTIAL,
-                                          "", &error);
   if (error != NULL)
     {
       g_propagate_error (error_out, error);
       return NULL;
     }
 
-  return g_steal_pointer (&retval);
+  if (raw_corrected_terms != NULL)
+    {
+      g_autofree gchar *corrected_parser_string = g_strjoinv (" ", raw_corrected_terms);
+      g_autoptr(XapianQuery) corrected_clause = xapian_query_parser_parse_query_full (
+        qp, corrected_parser_string,
+        XAPIAN_QUERY_PARSER_FEATURE_DEFAULT,
+        XAPIAN_PREFIX_TITLE, &error);
+
+      if (error != NULL)
+        {
+          g_propagate_error (error_out, error);
+          return NULL;
+        }
+
+      return xapian_query_new_for_pair (XAPIAN_QUERY_OP_OR, base_clause, corrected_clause);
+    }
+  else
+    {
+      return g_steal_pointer (&base_clause);
+    }
 }
 
 static XapianQuery *
