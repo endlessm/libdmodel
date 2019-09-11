@@ -31,7 +31,6 @@
 G_DECLARE_FINAL_TYPE (EknVfs, ekn_vfs, EKN, VFS, GVfs)
 
 #define EKN_URI "ekn"
-#define EKN_SCHEME_LEN 6
 
 struct _EknVfs
 {
@@ -248,9 +247,24 @@ ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
       /* The URI is of the form 'ekn://domain/hash[/resource]' */
       /* Domain is part of legacy bundle support and should not be used
        * for modern content. */
-      gchar **tokens = g_strsplit (uri + EKN_SCHEME_LEN, "/", -1);
+      gchar **uri_components;
+      gchar **tokens;
+      
+      uri_components = g_strsplit (uri, "://", 2);
+      if (uri_components == NULL)
+        uri_components = g_strsplit (uri, ":", 2);
 
-      if (tokens && tokens[0] && tokens[1])
+      if (uri_components && g_strv_length (uri_components) == 2)
+        tokens = g_strsplit (uri_components[1], "/", -1);
+      else
+        tokens = NULL;
+
+      guint tokens_length = tokens ? g_strv_length (tokens) : 0;
+      gchar *domain_token = tokens_length > 0 ? tokens[0] : NULL;
+      gchar *hash_token = tokens_length > 1 ? tokens[1] : NULL;
+      gchar *resource_token = tokens_length > 2 ? tokens[2] : NULL;
+
+      if (domain_token && hash_token)
         {
           EosShardRecord *record = NULL;
           GSList *l;
@@ -264,7 +278,7 @@ ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
               EosShardBlob *blob = record->data;
 
               /* Use resource, if present */
-              if (tokens[2])
+              if (resource_token)
                 blob = eos_shard_record_lookup_blob (record, tokens[2]);
 
               if (blob)
@@ -273,6 +287,7 @@ ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
         }
 
       g_strfreev (tokens);
+      g_strfreev (uri_components);
     }
   else if (uri && priv->extensions)
     {
