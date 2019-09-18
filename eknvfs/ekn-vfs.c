@@ -74,6 +74,12 @@ extension_object_new (GType type)
 }
 
 static void
+slist_free_and_unref (GSList *slist)
+{
+  g_slist_free_full (slist, g_object_unref);
+}
+
+static void
 ekn_vfs_extension_points_init (EknVfs *self)
 {
   EknVfsPrivate *priv = EKN_VFS_PRIVATE (self);
@@ -166,7 +172,7 @@ ekn_vfs_dispose (GObject *self)
 {
   EknVfsPrivate *priv = EKN_VFS_PRIVATE (self);
 
-  g_clear_pointer (&priv->shards, g_slist_free_full);
+  g_clear_pointer (&priv->shards, slist_free_and_unref);
   g_clear_object (&priv->local);
 
   G_OBJECT_CLASS (ekn_vfs_parent_class)->dispose (self);
@@ -177,7 +183,7 @@ ekn_vfs_set_shards (EknVfs *self, GSList *shards)
 {
   EknVfsPrivate *priv = EKN_VFS_PRIVATE (self);
 
-  g_slist_free_full (priv->shards, g_object_unref);
+  slist_free_and_unref (priv->shards);
 
   priv->shards = shards ? g_slist_copy_deep (shards, (GCopyFunc) g_object_ref, NULL) : NULL;
 
