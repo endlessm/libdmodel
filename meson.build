@@ -31,6 +31,7 @@ glib = dependency('glib-2.0')
 gmodule = dependency('gmodule-2.0')
 gobject = dependency('gobject-2.0')
 json_glib = dependency('json-glib-1.0')
+libarchive = dependency('libarchive')
 libendless = dependency('endless-0', version: libendless_req)
 shard = dependency('eos-shard-0', version: shard_req)
 soup = dependency('libsoup-2.4')
@@ -56,7 +57,7 @@ config = configuration_data()
 config.set_quoted('DM_VERSION', meson.project_version())
 configure_file(configuration: config, output: 'config.h')
 
-requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json-glib-1.0', 'libsoup-2.4']
+requires = ['glib-2.0', 'gio-2.0', 'gobject-2.0', 'json-glib-1.0', 'libsoup-2.4', 'libarchive']
 requires_private = [
     'endless-0 @0@'.format(libendless_req),
     'eos-shard-0 @0@'.format(shard_req),

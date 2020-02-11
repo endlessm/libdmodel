@@ -5,7 +5,16 @@
 #include "dm-utils-private.h"
 #include "dm-content-private.h"
 
+#include <archive.h>
+#include <archive_entry.h>
 #include <endless/endless.h>
+
+typedef struct {
+  GInputStream *stream;
+  void *buffer;
+} DmArchiveClientData;
+
+#define DM_ARCHIVE_CLIENT_DATA_BUFFER_SIZE 4096
 
 /**
  * SECTION:article
@@ -394,6 +403,125 @@ dm_article_get_table_of_contents (DmArticle *self)
 
   DmArticlePrivate *priv = dm_article_get_instance_private (self);
   return priv->table_of_contents;
+}
+
+static la_ssize_t
+_archive_read_callback(G_GNUC_UNUSED struct archive *a, void *client_data, const void **buffer)
+{
+  DmArchiveClientData *cdata = (DmArchiveClientData *) client_data;
+  *buffer = cdata->buffer;
+  return g_input_stream_read (G_INPUT_STREAM (cdata->stream),
+                              cdata->buffer,
+                              DM_ARCHIVE_CLIENT_DATA_BUFFER_SIZE,
+                              NULL,
+                              NULL);
+}
+
+static la_int64_t
+_archive_skip_callback(G_GNUC_UNUSED struct archive *a, void *client_data, off_t request)
+{
+  DmArchiveClientData *cdata = (DmArchiveClientData *) client_data;
+  return g_input_stream_skip (G_INPUT_STREAM (cdata->stream), request, NULL, NULL);
+}
+
+static int
+_archive_open_callback(G_GNUC_UNUSED struct archive *a, G_GNUC_UNUSED void *client_data)
+{
+  return ARCHIVE_OK;
+}
+
+static int
+_archive_close_callback(G_GNUC_UNUSED struct archive *a, G_GNUC_UNUSED void *client_data)
+{
+  return ARCHIVE_OK;
+}
+
+/**
+ * dm_article_get_archive_member_content_stream:
+ * @self: the model
+ * @member_name: the archive member name
+ * @error: error object
+ *
+ * For the cases of models that are archives (ZIP files), get a stream for
+ * the specified member inside the archive.
+ *
+ * Returns: (transfer full): a GMemoryInputStream of the member content
+ */
+GInputStream *
+dm_article_get_archive_member_content_stream (DmArticle *self,
+                                              const char *member_name,
+                                              GError **error)
+{
+  struct archive *arch;
+  struct archive_entry *arch_entry = NULL;
+  GInputStream *member_stream = NULL;
+  DmArchiveClientData client_data;
+  g_autoptr(GFileInputStream) client_data_stream = NULL;
+  g_autofree void *client_data_buffer = NULL;
+  int status;
+
+  arch = archive_read_new ();
+  dm_libarchive_set_error_and_return_if_fail (arch != NULL, arch, error, NULL);
+
+  status = archive_read_support_format_all (arch);
+  dm_libarchive_set_error_and_return_if_fail (status == ARCHIVE_OK, arch, error, NULL);
+
+  client_data_stream = dm_content_get_content_stream (DM_CONTENT (self), error);
+  g_return_val_if_fail (client_data_stream != NULL, NULL);
+
+  client_data_buffer = g_malloc (DM_ARCHIVE_CLIENT_DATA_BUFFER_SIZE);
+  client_data.stream = G_INPUT_STREAM (client_data_stream);
+  client_data.buffer = client_data_buffer;
+
+  archive_read_open2(arch, &client_data,
+                     _archive_open_callback,
+                     _archive_read_callback,
+                     _archive_skip_callback,
+                     _archive_close_callback);
+  for (;;)
+    {
+      status = archive_read_next_header(arch, &arch_entry);
+
+      if (status == ARCHIVE_EOF)
+        break;
+      if (status == ARCHIVE_RETRY)
+        continue;
+      if (status == ARCHIVE_WARN)
+        g_printerr("%s\n", archive_error_string (arch));
+      if (status < ARCHIVE_WARN)
+        g_set_error_literal (error,
+                             dm_content_error_quark (),
+                             archive_errno (arch),
+                             archive_error_string (arch));
+
+      if (!g_strcmp0 (archive_entry_pathname (arch_entry), member_name))
+        {
+          member_stream = g_memory_input_stream_new ();
+          void *read_buffer = g_malloc (DM_ARCHIVE_CLIENT_DATA_BUFFER_SIZE);
+          gsize read_size;
+          gsize total_read_size = 0;
+          gsize size_to_read = archive_entry_size (arch_entry);
+
+          while (total_read_size < size_to_read)
+            {
+              read_size = archive_read_data (arch, read_buffer,
+                                             DM_ARCHIVE_CLIENT_DATA_BUFFER_SIZE);
+
+              g_memory_input_stream_add_data (G_MEMORY_INPUT_STREAM (member_stream),
+                                              g_memdup (read_buffer, read_size),
+                                              read_size, g_free);
+              total_read_size += read_size;
+            }
+
+          g_free (read_buffer);
+
+          break;
+        }
+    }
+
+  archive_read_free (arch);
+
+  return member_stream;
 }
 
 /**
