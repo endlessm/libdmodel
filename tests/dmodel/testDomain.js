@@ -108,9 +108,10 @@ describe('Domain', function () {
 
         it('returns an array of subscription IDs', function () {
             let ids = domain.get_subscription_ids();
-            expect(ids.length).toBe(2);
+            expect(ids.length).toBe(3);
             expect(ids).toContain('1aa1fe392aa50a771ca5f8a6452a758896a21f7644225f4d1ddbefec77053c9b');
             expect(ids).toContain('9db1104bdc122815029851172c7d2c5138130a6fb77af6dd2726686068a70541');
+            expect(ids).toContain('4e5d34f59ead68eab1be99be2a4a59a4546caa564f14494d137bcd554c05eca9');
         });
     });
 });

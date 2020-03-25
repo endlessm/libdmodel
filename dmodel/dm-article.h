@@ -38,6 +38,12 @@ GVariant *
 dm_article_get_table_of_contents (DmArticle *self);
 
 DM_AVAILABLE_IN_ALL
+GInputStream *
+dm_article_get_archive_member_content_stream (DmArticle *self,
+                                              const char *member_name,
+                                              GError **error);
+
+DM_AVAILABLE_IN_ALL
 DmContent *
 dm_article_new_from_json_node (JsonNode *node);
 
