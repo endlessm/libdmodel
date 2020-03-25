@@ -374,14 +374,21 @@ dm_domain_initable_init (GInitable *initable,
     }
   else if (has_app_id)
     {
-      g_autofree gchar *manifest_tmp = g_strconcat (g_get_user_data_dir (),
-                                                    G_DIR_SEPARATOR_S,
-                                                    "dmodel.",
-                                                    self->app_id,
-                                                    ".manifest.json",
-                                                    NULL);
+      g_autoptr(GFile) data_dir = g_file_new_for_path (g_get_user_data_dir ());
 
-      self->manifest_file = g_file_new_for_path (manifest_tmp);
+      if (!g_file_make_directory_with_parents (data_dir, NULL, error))
+        {
+          if (!g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+            {
+              return FALSE;
+            } else {
+              g_clear_error (error);
+            }
+        }
+
+      g_autofree gchar *manifest_file_name = g_strconcat ("dmodel.", self->app_id, ".manifest.json", NULL);
+      self->manifest_file = g_file_get_child (data_dir, manifest_file_name);
+
       JsonArray *json_subscriptions = json_array_new ();
 
       /* Find out root relative path from manifest file */
@@ -432,7 +439,19 @@ dm_domain_initable_init (GInitable *initable,
       json_object_set_array_member (json_root, "xapian_databases", json_subscriptions);
       json_node_take_object (json_root_node, json_root);
       json_generator_set_root (json_generator, json_root_node);
-      json_generator_to_file (json_generator, manifest_tmp, error);
+
+      g_autoptr(GFileOutputStream) manifest_file_output = g_file_replace (self->manifest_file,
+                                                                          NULL,
+                                                                          FALSE,
+                                                                          G_FILE_CREATE_NONE,
+                                                                          NULL,
+                                                                          error);
+
+      if (manifest_file_output == NULL)
+        return FALSE;
+
+      if (!json_generator_to_stream (json_generator, manifest_file_output, NULL, error))
+        return FALSE;
     }
   else
     {
