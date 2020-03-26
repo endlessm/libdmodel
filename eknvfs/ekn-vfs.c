@@ -31,7 +31,6 @@
 G_DECLARE_FINAL_TYPE (EknVfs, ekn_vfs, EKN, VFS, GVfs)
 
 #define EKN_URI "ekn"
-#define EKN_SCHEME_LEN 6
 
 struct _EknVfs
 {
@@ -244,19 +243,37 @@ ekn_vfs_get_file_for_path (GVfs *self, const char *path)
 }
 
 static GFile *
-ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
+ekn_vfs_get_file_for_uri_internal (GVfs *self, const char *uri)
 {
   EknVfsPrivate *priv = EKN_VFS_PRIVATE (self);
   GFile *retval = NULL;
 
-  if (uri && g_str_has_prefix (uri, EKN_URI":"))
+  gchar *scheme = NULL;
+
+  if (uri)
+    scheme = g_uri_parse_scheme (uri);
+
+  if (scheme && g_strcmp0 (scheme, EKN_URI) == 0)
     {
       /* The URI is of the form 'ekn://domain/hash[/resource]' */
       /* Domain is part of legacy bundle support and should not be used
        * for modern content. */
-      gchar **tokens = g_strsplit (uri + EKN_SCHEME_LEN, "/", -1);
+      gchar **uri_components;
+      gchar **tokens;
 
-      if (tokens && tokens[0] && tokens[1])
+      uri_components = g_strsplit (uri, "://", 2);
+
+      if (g_strv_length (uri_components) == 2)
+        tokens = g_strsplit (uri_components[1], "/", -1);
+      else
+        tokens = NULL;
+
+      guint tokens_length = tokens ? g_strv_length (tokens) : 0;
+      const gchar *domain_token = tokens_length > 0 ? tokens[0] : NULL;
+      const gchar *hash_token = tokens_length > 1 ? tokens[1] : NULL;
+      const gchar *resource_token = tokens_length > 2 ? tokens[2] : NULL;
+
+      if (domain_token && hash_token)
         {
           EosShardRecord *record = NULL;
           GSList *l;
@@ -270,8 +287,8 @@ ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
               EosShardBlob *blob = record->data;
 
               /* Use resource, if present */
-              if (tokens[2])
-                blob = eos_shard_record_lookup_blob (record, tokens[2]);
+              if (resource_token && strlen (resource_token) > 0)
+                blob = eos_shard_record_lookup_blob (record, resource_token);
 
               if (blob)
                 retval = _ekn_file_new (uri, blob);
@@ -279,22 +296,25 @@ ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
         }
 
       g_strfreev (tokens);
+      g_strfreev (uri_components);
     }
-  else if (uri && priv->extensions)
+  else if (scheme && priv->extensions)
     {
-      gchar *scheme = g_uri_parse_scheme (uri);
-      if (scheme)
-        {
-          GVfs  *delegate = g_hash_table_lookup (priv->extensions, scheme);
-
-          if (delegate)
-            retval = g_vfs_get_file_for_uri (delegate, uri);
-        }
-      g_free (scheme);
+      GVfs  *delegate = g_hash_table_lookup (priv->extensions, scheme);
+      if (delegate)
+        retval = g_vfs_get_file_for_uri (delegate, uri);
     }
 
-  /* This method should never fail */
-  return retval ? retval : g_vfs_get_file_for_uri (priv->local, uri);
+  g_free (scheme);
+
+  return retval;
+}
+
+static GFile *
+ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
+{
+  GFile *retval = ekn_vfs_get_file_for_uri_internal (self, uri);
+  return retval ? retval : g_vfs_get_file_for_uri (EKN_VFS_PRIVATE (self)->local, uri);
 }
 
 static const gchar * const *
@@ -306,10 +326,9 @@ ekn_vfs_get_supported_uri_schemes (GVfs *self)
 static GFile *
 ekn_vfs_parse_name (GVfs *self, const char *parse_name)
 {
-  if (g_path_is_absolute (parse_name))
-    return g_vfs_parse_name (EKN_VFS_PRIVATE (self)->local, parse_name);
-  else
-    return ekn_vfs_get_file_for_uri (self, parse_name);
+  /* EknFile parse names are always the same as their URIs */
+  GFile *retval = ekn_vfs_get_file_for_uri_internal (self, parse_name);
+  return retval ? retval : g_vfs_parse_name (EKN_VFS_PRIVATE (self)->local, parse_name);
 }
 
 static void
