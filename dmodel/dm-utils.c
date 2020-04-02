@@ -2,6 +2,7 @@
 
 /* Copyright 2015 Endless Mobile, Inc. */
 
+#include "dm-shard.h"
 #include "dm-utils.h"
 #include "dm-utils-private.h"
 
@@ -260,7 +261,21 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
-#define ID_REGEX "^ekn://[^/]*/(?=[A-Za-z0-9]*)(?:.{16}|.{40})$"
+/**
+ * dm_utils_is_valid_uri:
+ * @uri: the URI
+ *
+ * Checks if a document URI is valid (see #DmContent:id).
+ *
+ * Returns: %TRUE if the URI is valid.
+ */
+gboolean
+dm_utils_is_valid_uri (const char *uri)
+{
+  g_autofree gchar *id = (gchar *) dm_utils_uri_get_object_id (uri);
+  return id != NULL;
+}
+
 /**
  * dm_utils_is_valid_id:
  * @id: the ID
@@ -272,25 +287,29 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 gboolean
 dm_utils_is_valid_id (const char *id)
 {
-  g_autoptr(GRegex) id_regex = g_regex_new (ID_REGEX, 0, 0, NULL);
-  return g_regex_match (id_regex, id, 0, NULL);
+  return dm_utils_is_valid_uri (id);
 }
 
 /**
- * dm_utils_id_get_hash:
- * @id: the ID
+ * dm_utils_uri_get_object_id:
+ * @uri: the URI
  *
- * Gets a pointer to the hash part of an ID.
+ * Gets a pointer to the hash part of an URI.
  *
- * Returns: (transfer none): a pointer to the hash part of the ID, within @id.
+ * Returns: (transfer full): a pointer to the hash part of the URI, within @uri.
  */
 const gchar *
-dm_utils_id_get_hash (const char *id)
+dm_utils_uri_get_object_id (const char *uri)
 {
-  if (!dm_utils_is_valid_id (id))
+  g_autofree gchar *scheme = g_uri_parse_scheme (uri);
+  if (g_strcmp0 (scheme, "ekn") == 0)
+   {
+     // Expecting ekn://[domain]/<object ID>[/member name]
+     g_auto(GStrv) tokens = g_strsplit (uri + strlen("ekn://"), "/", -1);
+     return g_strdup (tokens[1]);
+   }
+  else
     return NULL;
-  const char *post_uri = id + strlen ("ekn://");
-  return g_strstr_len (post_uri, -1, "/") + 1;
 }
 
 /**
@@ -601,7 +620,7 @@ dm_get_extensions_dirs (const char *app_id)
 
 /**
  * dm_default_vfs_set_shards:
- * @shards: (type GSList(EosShardShardFile)): a list of shard objects
+ * @shards: (type GSList(DmShard)): a list of shard objects
  *
  * Set a list of shards in the default GVfs extension point where to lookup
  * ekn:// uris resources.
@@ -611,7 +630,7 @@ dm_get_extensions_dirs (const char *app_id)
 gboolean
 dm_default_vfs_set_shards (GSList *shards)
 {
-  GType shard_type = EOS_SHARD_TYPE_SHARD_FILE;
+  GType shard_type = DM_TYPE_SHARD;
   GVfs *vfs = g_vfs_get_default ();
   GSList *l;
 
@@ -625,7 +644,7 @@ dm_default_vfs_set_shards (GSList *shards)
     {
       if (!g_type_is_a (G_OBJECT_TYPE (l->data), shard_type))
         {
-          g_warning ("%s is not a EosShardShardFile", G_OBJECT_TYPE_NAME (l->data));
+          g_warning ("%s is not a DmShard", G_OBJECT_TYPE_NAME (l->data));
           return FALSE;
         }
 

@@ -37,9 +37,17 @@ DM_AVAILABLE_IN_ALL
 gboolean
 dm_default_vfs_set_shards (GSList *shards);
 
-DM_AVAILABLE_IN_ALL
+DM_AVAILABLE_IN_0_2
+gboolean
+dm_utils_is_valid_uri (const char *uri);
+
+DM_DEPRECATED_IN_0_2_FOR (dm_utils_is_valid_uri)
 gboolean
 dm_utils_is_valid_id (const char *id);
+
+DM_AVAILABLE_IN_0_2
+const gchar *
+dm_utils_uri_get_object_id (const char *uri);
 
 DM_AVAILABLE_IN_ALL
 GFile *

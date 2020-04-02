@@ -39,8 +39,20 @@ xapian_glib = dependency('xapian-glib-2.0')
 
 giomoduledir = gio.get_pkgconfig_variable('giomoduledir')
 
-subdir('eknvfs')
+main_library_dependencies = [
+    gio,
+    glib,
+    gobject,
+    json_glib,
+    libarchive,
+    libendless,
+    shard,
+    soup,
+    xapian_glib,
+]
+
 subdir('dmodel')
+subdir('eknvfs')
 
 # Dependency object for gtk-doc and tests to use
 main_library_dependency = declare_dependency(dependencies: [glib, gobject],

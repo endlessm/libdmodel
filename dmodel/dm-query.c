@@ -646,7 +646,7 @@ get_ids_clause (char **ids,
   g_auto(GStrv) prefixed_ids = g_new0 (gchar *, length + 1);
   for (size_t ix = 0, prefixed_ix = 0; ix < length; ix++)
     {
-      const char *hash = dm_utils_id_get_hash (ids[ix]);
+      const char *hash = dm_utils_uri_get_object_id (ids[ix]);
       if (hash == NULL)
         {
           g_critical ("Unexpected id structure in query object: %s", ids[ix]);

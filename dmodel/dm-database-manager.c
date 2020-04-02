@@ -16,6 +16,7 @@
 
 #include "dm-database-manager-private.h"
 #include "dm-query-private.h"
+#include "dm-shard.h"
 
 #include <endless/endless.h>
 
@@ -28,7 +29,7 @@ typedef struct {
   /* string lang_name => object XapianStem */
   GHashTable *stemmers;
 
-  char *manifest_path;
+  GSList *shards;
 
   XapianQueryParser *query_parser;
   XapianDatabase *database;
@@ -39,8 +40,8 @@ struct _DmDatabaseManager {
 };
 
 enum {
-  PROP_MANIFEST_PATH = 1,
-
+  PROP_0,
+  PROP_SHARDS,
   N_PROPS
 };
 
@@ -134,9 +135,8 @@ dm_database_manager_set_property (GObject *gobject,
 
   switch (prop_id)
     {
-    case PROP_MANIFEST_PATH:
-      g_free (priv->manifest_path);
-      priv->manifest_path = g_value_dup_string (value);
+    case PROP_SHARDS:
+      priv->shards = g_value_get_pointer (value);
       break;
 
     default:
@@ -155,8 +155,8 @@ dm_database_manager_get_property (GObject *gobject,
 
   switch (prop_id)
     {
-    case PROP_MANIFEST_PATH:
-      g_value_set_string (value, priv->manifest_path);
+    case PROP_SHARDS:
+      g_value_set_pointer (value, priv->shards);
       break;
 
     default:
@@ -169,8 +169,6 @@ dm_database_manager_finalize (GObject *object)
 {
   DmDatabaseManager *self = DM_DATABASE_MANAGER (object);
   DmDatabaseManagerPrivate *priv = dm_database_manager_get_instance_private (self);
-
-  g_free (priv->manifest_path);
 
   g_clear_object (&priv->database);
   g_clear_object (&priv->query_parser);
@@ -189,12 +187,11 @@ dm_database_manager_class_init (DmDatabaseManagerClass *klass)
   gobject_class->get_property = dm_database_manager_get_property;
   gobject_class->finalize = dm_database_manager_finalize;
 
-  dm_database_manager_properties[PROP_MANIFEST_PATH] =
-    g_param_spec_string ("manifest-path", "Manifest Path", "The path to the database manifest",
-                         NULL,
-                         G_PARAM_READWRITE |
-                         G_PARAM_CONSTRUCT_ONLY |
-                         G_PARAM_STATIC_STRINGS);
+  dm_database_manager_properties[PROP_SHARDS] =
+    g_param_spec_pointer ("shards", "Shards", "The list of shards",
+                          G_PARAM_READWRITE |
+                          G_PARAM_CONSTRUCT_ONLY |
+                          G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (gobject_class, N_PROPS, dm_database_manager_properties);
 }
@@ -310,19 +307,12 @@ dm_database_manager_register_stopwords (DmDatabaseManager *self,
 }
 
 static XapianDatabase *
-create_database_from_manifest (const char  *manifest_path,
-                               GError     **error_out)
+create_database_from_shards (GSList *shards,
+                             GError **error_out)
 {
   GError *error = NULL;
 
   g_autoptr(EosProfileProbe) probe = EOS_PROFILE_PROBE ("/dmodel/database/create");
-
-  g_autoptr(JsonParser) parser = json_parser_new_immutable ();
-  if (!json_parser_load_from_file (parser, manifest_path, &error))
-    {
-      g_propagate_error (error_out, error);
-      return NULL;
-    }
 
   XapianDatabase *db = xapian_database_new (&error);
   if (error != NULL)
@@ -331,31 +321,20 @@ create_database_from_manifest (const char  *manifest_path,
       return NULL;
     }
 
-  JsonNode *node = json_parser_get_root (parser);
-  JsonObject *json_manifest = json_node_get_object (node);
-  JsonArray *json_dbs = json_object_get_array_member (json_manifest, "xapian_databases");
-
-  g_autofree char *manifest_dir_path = g_path_get_dirname (manifest_path);
-
-  GList *dbs = json_array_get_elements (json_dbs);
-
-  for (GList *l = dbs; l != NULL; l = l->next)
+  for (GSList *l = shards; l; l = g_slist_next (l))
     {
       g_autoptr(EosProfileProbe) db_probe =
         EOS_PROFILE_PROBE ("/dmodel/database/create/internal_db");
 
-      JsonObject *json_db = json_node_get_object (l->data);
-
-      guint64 db_offset = json_object_get_int_member (json_db, "offset");
-
-      const char *relpath = json_object_get_string_member (json_db, "path");
-      g_autofree char *db_path = g_build_filename (manifest_dir_path, relpath, NULL);
+      gint64 offset = dm_shard_get_db_offset (l->data);
+      if (offset == -1)
+        continue;
 
       g_autoptr(XapianDatabase) internal_db =
         g_initable_new (XAPIAN_TYPE_DATABASE,
                         NULL, &error,
-                        "path", db_path,
-                        "offset", db_offset,
+                        "path", dm_shard_get_path (l->data),
+                        "offset", offset,
                         NULL);
 
       if (error != NULL)
@@ -368,40 +347,24 @@ create_database_from_manifest (const char  *manifest_path,
       xapian_database_add_database (db, internal_db);
     }
 
-  g_list_free (dbs);
-
   return db;
 }
 
-static char *
-read_link (const char *path)
-{
-  char *resolved_path = g_file_read_link (path, NULL);
-  if (resolved_path != NULL)
-    return resolved_path;
-  else
-    return g_strdup (path);
-}
-
-/* Creates a new XapianDatabase for the given path, and indexes it by path,
- * overwriting any existing database with the same name.
- */
 static gboolean
 dm_database_manager_create_db_internal (DmDatabaseManager *self,
-                                        const char *path,
                                         GError **error_out)
 {
   DmDatabaseManagerPrivate *priv = dm_database_manager_get_instance_private (self);
 
   GError *error = NULL;
 
-  priv->database = create_database_from_manifest (path, &error);
+  priv->database = create_database_from_shards (priv->shards, &error);
   if (error != NULL)
     {
       g_set_error (error_out, DM_DATABASE_MANAGER_ERROR,
                    DM_DATABASE_MANAGER_ERROR_INVALID_PATH,
-                   "Cannot create XapianDatabase for path %s: %s",
-                   path, error->message);
+                   "Cannot create XapianDatabase: %s",
+                   error->message);
       g_error_free (error);
       return FALSE;
     }
@@ -415,16 +378,14 @@ dm_database_manager_create_db_internal (DmDatabaseManager *self,
   if (!dm_database_manager_register_prefixes (self, &error))
     {
       /* Non-fatal */
-      g_warning ("Could not register prefixes for database %s: %s",
-                 path, error->message);
+      g_warning ("Could not register database prefixes: %s", error->message);
       g_clear_error (&error);
     }
 
   if (!dm_database_manager_register_stopwords (self, &error))
     {
       /* Non-fatal */
-      g_warning ("Could not add stop words for database %s: %s.",
-                 path, error->message);
+      g_warning ("Could not add database stop words: %s.", error->message);
       g_clear_error (&error);
     }
 
@@ -440,9 +401,7 @@ ensure_db (DmDatabaseManager *self,
   if (priv->database != NULL)
     return TRUE;
 
-  g_autofree char *path = read_link (priv->manifest_path);
-
-  return dm_database_manager_create_db_internal (self, path, error_out);
+  return dm_database_manager_create_db_internal (self, error_out);
 }
 
 static XapianMSet *
@@ -659,9 +618,9 @@ dm_database_manager_query (DmDatabaseManager *self,
 }
 
 DmDatabaseManager *
-dm_database_manager_new (const char *path)
+dm_database_manager_new (GSList *shards)
 {
   return g_object_new (DM_TYPE_DATABASE_MANAGER,
-                       "manifest-path", path,
+                       "shards", shards,
                        NULL);
 }

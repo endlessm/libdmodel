@@ -22,6 +22,7 @@ G_BEGIN_DECLS
 #include "dm-query.h"
 #include "dm-query-results.h"
 #include "dm-set.h"
+#include "dm-shard.h"
 #include "dm-utils.h"
 #include "dm-version.h"
 #include "dm-video.h"
