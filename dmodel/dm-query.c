@@ -1075,7 +1075,10 @@ dm_query_new_from_object (DmQuery *source,
 {
   g_return_val_if_fail (DM_IS_QUERY (source), NULL);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   GParameter params[NPROPS - 1] = {{ NULL, { 0, }}};
+G_GNUC_END_IGNORE_DEPRECATIONS
+
   for (guint i = 0; i < NPROPS - 1; i++)
     {
       GParamSpec *pspec = dm_query_props[i + 1];

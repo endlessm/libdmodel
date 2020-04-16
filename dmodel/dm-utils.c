@@ -153,7 +153,9 @@ dm_utils_append_gparam_from_json_node (JsonNode *node,
                                          GParamSpec *pspec,
                                          GArray *params)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   GParameter param = { NULL, G_VALUE_INIT };
+G_GNUC_END_IGNORE_DEPRECATIONS
 
   if (node == NULL)
     return;
@@ -249,11 +251,13 @@ dm_utils_append_gparam_from_json_node (JsonNode *node,
 void
 dm_utils_free_gparam_array (GArray *params)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   for (guint i = 0; i < params->len; i++) {
     GParameter *param = &g_array_index (params, GParameter, i);
     g_value_unset (&param->value);
   }
   g_array_free (params, TRUE);
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 #define ID_REGEX "^ekn://[^/]*/(?=[A-Za-z0-9]*)(?:.{16}|.{40})$"
