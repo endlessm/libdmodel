@@ -330,7 +330,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_SEARCH_TERMS] =
     g_param_spec_string ("search-terms", "Search terms",
       "Query string with terms to search",
-      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:corrected-terms:
@@ -340,7 +340,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_CORRECTED_TERMS] =
     g_param_spec_string ("corrected-terms", "Corrected terms",
       "A version of search-terms with typos, etc corrected",
-      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:stopword-free-terms:
@@ -350,7 +350,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_STOPWORD_FREE_TERMS] =
     g_param_spec_string ("stopword-free-terms", "Stopword-free terms",
       "A version of search-terms without any stopwords",
-      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:literal-query:
@@ -360,7 +360,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_LITERAL_QUERY] =
     g_param_spec_string ("literal-query", "Xapian query",
       "Literal Xapian query",
-      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:mode:
@@ -370,7 +370,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_MODE] =
     g_param_spec_enum ("mode", "Mode", "Mode of the query",
       DM_TYPE_QUERY_MODE, DM_QUERY_MODE_INCREMENTAL,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:match:
@@ -380,7 +380,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_MATCH] =
     g_param_spec_enum ("match", "Match", "What to match against in the source documents",
       DM_TYPE_QUERY_MATCH, DM_QUERY_MATCH_ONLY_TITLE,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:sort:
@@ -390,7 +390,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_SORT] =
     g_param_spec_enum ("sort", "Sort", "What to sort-by against in the source documents",
       DM_TYPE_QUERY_SORT, DM_QUERY_SORT_RELEVANCE,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:order:
@@ -400,7 +400,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_ORDER] =
     g_param_spec_enum ("order", "Order", "What order to put results in",
       DM_TYPE_QUERY_ORDER, DM_QUERY_ORDER_ASCENDING,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:limit:
@@ -411,7 +411,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_uint ("limit", "Limit",
       "The maximum number of results to return",
       0, G_MAXUINT, G_MAXUINT,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:offset:
@@ -421,7 +421,7 @@ dm_query_class_init (DmQueryClass *klass)
   dm_query_props[PROP_OFFSET] =
     g_param_spec_uint ("offset", "Offset",
       "Number of results to skip",
-      0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:tags-match-all:
@@ -432,7 +432,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_boxed ("tags-match-all", "Tags match all",
       "A list of tags to restrict the search to",
       G_TYPE_STRV,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:tags-match-any:
@@ -443,7 +443,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_boxed ("tags-match-any", "Tags match any",
       "A list of tags to restrict the search to",
       G_TYPE_STRV,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:ids:
@@ -455,7 +455,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_boxed ("ids", "Ids",
       "A list of specific IDs to limit the search to",
       G_TYPE_STRV,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:excluded-ids:
@@ -466,7 +466,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_boxed ("excluded-ids", "Excluded ids",
       "A list of specific IDs to exclude from the search",
       G_TYPE_STRV,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:excluded-tags:
@@ -477,7 +477,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_boxed ("excluded-tags", "Excluded tags",
       "A list of specific ekn tags to exclude from the search",
       G_TYPE_STRV,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:content-type:
@@ -488,7 +488,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_string ("content-type", "Content Type",
       "Content type to restrict the search to",
       NULL,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:excluded-content-type:
@@ -499,7 +499,7 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_string ("excluded-content-type", "Excluded Content Type",
       "Content type to exclude from the search",
       NULL,
-      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, NPROPS, dm_query_props);
 }
