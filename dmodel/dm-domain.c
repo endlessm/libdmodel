@@ -4,6 +4,7 @@
 
 #include "dm-shard.h"
 #include "dm-shard-eos-shard-private.h"
+#include "dm-shard-open-zim-private.h"
 #include "dm-database-manager-private.h"
 #include "dm-base.h"
 #include "dm-utils.h"
@@ -46,6 +47,7 @@ struct _DmDomain
 
   DmDatabaseManager *db_manager;
   GMutex db_lock;
+  gboolean using_3rd_party_search_index;
 
   // List of DmShard items
   GSList *shards;
@@ -277,6 +279,11 @@ dm_domain_process_subscription (DmDomain *self,
 
       if (g_strcmp0 (type, "eosshard") == 0)
         shard = DM_SHARD (dm_shard_eos_shard_new (path));
+      else if (g_strcmp0 (type, "openzim") == 0)
+        {
+          shard = DM_SHARD (dm_shard_open_zim_new (path));
+          self->using_3rd_party_search_index = TRUE;
+        }
       else
         {
           g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_BAD_MANIFEST,
@@ -338,6 +345,8 @@ dm_domain_initable_init (GInitable *initable,
 
   gboolean has_app_id = (self->app_id != NULL && *self->app_id != '\0');
   gboolean has_path = (self->path != NULL && *self->path != '\0');
+
+  self->using_3rd_party_search_index = FALSE;
 
   if (has_path)
     {
@@ -630,6 +639,15 @@ query_fix_task (GTask *task,
 
   g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&self->db_lock);
 
+  if (request->domain->using_3rd_party_search_index)
+    g_object_set (request->query,
+                  "match", DM_QUERY_MATCH_TITLE_SYNOPSIS,
+                  "tags-match-all", NULL,
+                  "tags-match-any", NULL,
+                  "content-type", NULL,
+                  "excluded-content-type", NULL,
+                  NULL);
+
   dm_database_manager_fix_query (request->db_manager,
                                  dm_query_get_search_terms (request->query),
                                  &request->fixed_stop_terms,
@@ -779,7 +797,13 @@ query_task (GTask *task,
           continue;
         }
 
-      g_autofree char *uri = xapian_document_get_data (document);
+      g_autofree char *document_data = xapian_document_get_data (document);
+      g_autofree char *uri = NULL;
+
+      if (!g_str_has_prefix (document_data, "ekn://"))
+        uri = g_strconcat ("ekn+zim:///", document_data, NULL);
+      else
+        uri = g_strdup (document_data);
 
       g_debug ("Retrieving document object '%s'\n", uri);
 

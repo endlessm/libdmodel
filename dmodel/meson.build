@@ -35,6 +35,7 @@ private_headers = [
     'dm-media-private.h',
     'dm-query-private.h',
     'dm-shard-eos-shard-private.h',
+    'dm-shard-open-zim-private.h',
     'dm-utils-private.h',
 ]
 sources = [
@@ -52,6 +53,7 @@ sources = [
     'dm-query-results.c',
     'dm-set.c',
     'dm-shard-eos-shard.c',
+    'dm-shard-open-zim.c',
     'dm-shard-record.c',
     'dm-shard.c',
     'dm-utils.c',

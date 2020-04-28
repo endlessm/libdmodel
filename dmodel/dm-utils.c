@@ -308,6 +308,12 @@ dm_utils_uri_get_object_id (const char *uri)
      g_auto(GStrv) tokens = g_strsplit (uri + strlen("ekn://"), "/", -1);
      return g_strdup (tokens[1]);
    }
+  else if (g_strcmp0 (scheme, "ekn+zim") == 0)
+    {
+      // Expecting ekn+zim://[domain]/<ZIM Article longUrl>
+      g_auto(GStrv) tokens = g_strsplit (uri + strlen("ekn+zim://"), "/", 2);
+      return g_uri_unescape_string (tokens[1], NULL);
+    }
   else
     return NULL;
 }
