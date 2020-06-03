@@ -229,7 +229,7 @@ dm_domain_process_subscription (DmDomain *self,
 
           JsonNode *offset_node = json_object_get_member (json_node_get_object (xapian_database_node), "offset");
           if (offset_node == NULL || json_node_get_value_type (offset_node) != G_TYPE_INT64)
-            dm_domain_return_malformed_manifest (error, "xapian_databases.[].offset");
+            continue;
 
           gint64 *offset = g_new (gint64, 1);
           *offset = json_node_get_int (offset_node);
