@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "subscription_id": "f751e7c1038cdebeaa41d2918c67d113b7c02b8a28c9783896ffe00f2d4b78b8",
+  "xapian_databases": [
+    {
+      "path": "test.zim"
+    }
+  ],
+  "shards": [
+    {
+      "path": "test.zim",
+      "sha256_csum": "316565a96036c3db620f6f660929602d8c014aa5c68602877f5b7fec84cee954",
+      "type": "openzim"
+    }
+  ]
+}

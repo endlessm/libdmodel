@@ -15,6 +15,7 @@ javascript_tests = [
     'dmodel/testQuery.js',
     'dmodel/testQueryResults.js',
     'dmodel/testSet.js',
+    'dmodel/testShardOpenZim.js',
     'dmodel/testUtils.js',
     'dmodel/testVideo.js',
 ]
