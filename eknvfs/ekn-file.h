@@ -13,7 +13,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -25,13 +25,13 @@
 #pragma once
 
 #include <gio/gio.h>
-#include "eos-shard/eos-shard-blob.h"
+#include <dm-shard-record.h>
 
 G_BEGIN_DECLS
 
 #define EKN_TYPE_FILE (ekn_file_get_type ())
 G_DECLARE_FINAL_TYPE (EknFile, ekn_file, EKN, FILE, GObject)
 
-GFile *_ekn_file_new (const gchar *uri, EosShardBlob *blob);
+GFile *_ekn_file_new (const gchar *uri, DmShardRecord *record);
 
 G_END_DECLS

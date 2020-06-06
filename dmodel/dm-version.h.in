@@ -2,10 +2,6 @@
 
 #pragma once
 
-#if !(defined(_DM_INSIDE_DMODEL_H) || defined(COMPILING_DMODEL))
-#error "Please do not include this header file directly."
-#endif
-
 /**
  * SECTION:version-information
  * @title: Version Information

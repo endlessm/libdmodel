@@ -15,12 +15,12 @@ javascript_tests = [
     'dmodel/testQuery.js',
     'dmodel/testQueryResults.js',
     'dmodel/testSet.js',
+    'dmodel/testShardOpenZim.js',
     'dmodel/testUtils.js',
     'dmodel/testVideo.js',
 ]
 
 jasmine = find_program('jasmine')
-test_runner = find_program('./tap.py')
 include_path = '@0@:@1@'.format(meson.source_root(), meson.build_root())
 built_library_path = join_paths(meson.build_root(), meson.project_name())
 eknvfs_dir = join_paths(meson.build_root(), 'eknvfs')
@@ -35,13 +35,13 @@ tests_environment.set('GIO_MODULE_DIR', eknvfs_dir)
 tests_environment.prepend('XDG_DATA_DIRS', test_content_path)
 tests_environment.set('LC_ALL', 'C')
 
-args = [jasmine.path(), '--no-config', '--tap']
+args = ['--no-config']
 if (jasmine_report_argument != '')
     args += [jasmine_report_argument]
 endif
 
 foreach test_file : javascript_tests
     srcdir_file = join_paths(meson.current_source_dir(), test_file)
-    test(test_file, test_runner, env: tests_environment,
+    test(test_file, jasmine, env: tests_environment,
         args: args + [srcdir_file])
 endforeach

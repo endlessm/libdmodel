@@ -13,7 +13,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -22,6 +22,8 @@
  *
  */
 
+#include <dm-utils.h>
+#include <dm-shard.h>
 #include "ekn-file.h"
 #include "ekn-file-input-stream-wrapper.h"
 
@@ -35,15 +37,15 @@ struct _EknFile
 typedef struct
 {
   gchar *uri;
-  EosShardBlob *blob;
+  DmShardRecord *record;
+  DmContent *content;
 } EknFilePrivate;
 
 enum
 {
   PROP_0,
-
   PROP_URI,
-  PROP_BLOB,
+  PROP_RECORD,
   N_PROPERTIES
 };
 
@@ -71,8 +73,8 @@ ekn_file_finalize (GObject *self)
   EknFilePrivate *priv = EKN_FILE_PRIVATE (self);
 
   g_clear_pointer (&priv->uri, g_free);
-  g_clear_pointer (&priv->blob, eos_shard_blob_unref);
-  
+  g_clear_pointer (&priv->record, dm_shard_record_unref);
+
   G_OBJECT_CLASS (ekn_file_parent_class)->finalize (self);
 }
 
@@ -81,7 +83,7 @@ ekn_file_set_uri (EknFile *self, const gchar *uri)
 {
   EknFilePrivate *priv = EKN_FILE_PRIVATE (self);
 
-  g_return_if_fail (g_str_has_prefix (uri, "ekn:"));
+  g_return_if_fail (dm_utils_is_valid_uri (uri));
 
   if (g_strcmp0 (priv->uri, uri) != 0)
     {
@@ -92,16 +94,17 @@ ekn_file_set_uri (EknFile *self, const gchar *uri)
 }
 
 static inline void
-ekn_file_set_blob (EknFile *self, EosShardBlob *blob)
+ekn_file_set_record (EknFile *self, DmShardRecord *record)
 {
   EknFilePrivate *priv = EKN_FILE_PRIVATE (self);
 
-  g_clear_pointer (&priv->blob, eos_shard_blob_unref);
-  
-  if (blob)
-    priv->blob = eos_shard_blob_ref (blob);
+  g_clear_pointer (&priv->record, dm_shard_record_unref);
+  g_clear_pointer (&priv->content, g_object_unref);
 
-  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_BLOB]);
+  if (record)
+    priv->record = dm_shard_record_ref (record);
+
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_RECORD]);
 }
 
 static void
@@ -117,8 +120,8 @@ ekn_file_set_property (GObject      *self,
     case PROP_URI:
       ekn_file_set_uri (EKN_FILE (self), g_value_get_string (value));
       break;
-    case PROP_BLOB:
-      ekn_file_set_blob (EKN_FILE (self), g_value_get_pointer (value));
+    case PROP_RECORD:
+      ekn_file_set_record (EKN_FILE (self), g_value_get_boxed (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (self, prop_id, pspec);
@@ -142,8 +145,8 @@ ekn_file_get_property (GObject    *self,
     case PROP_URI:
       g_value_set_string (value, priv->uri);
       break;
-    case PROP_BLOB:
-      g_value_set_pointer (value, priv->blob);
+    case PROP_RECORD:
+      g_value_set_boxed (value, priv->record);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (self, prop_id, pspec);
@@ -157,7 +160,7 @@ static GFile *
 ekn_file_dup (GFile *self)
 {
   EknFilePrivate *priv = EKN_FILE_PRIVATE (self);
-  return _ekn_file_new (priv->uri, priv->blob);
+  return _ekn_file_new (priv->uri, priv->record);
 }
 
 static guint
@@ -178,7 +181,7 @@ ekn_file_is_native (G_GNUC_UNUSED GFile *self)
   return TRUE;
 }
 
-static gboolean 
+static gboolean
 ekn_file_has_uri_scheme (G_GNUC_UNUSED GFile *self,
                          const char *uri_scheme)
 {
@@ -241,10 +244,25 @@ ekn_file_query_info (GFile                *self,
   matcher = g_file_attribute_matcher_new (attributes);
 
   if (g_file_attribute_matcher_matches (matcher, G_FILE_ATTRIBUTE_STANDARD_SIZE))
-    g_file_info_set_size (info, eos_shard_blob_get_content_size (priv->blob));
+    {
+      gsize size = dm_shard_get_data_size (dm_shard_record_get_shard (priv->record),
+                                           priv->record);
+      g_file_info_set_size (info, size);
+    }
 
   if (g_file_attribute_matcher_matches (matcher, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE))
-    g_file_info_set_content_type (info, eos_shard_blob_get_content_type (priv->blob));
+    {
+      if (!priv->content)
+        priv->content = dm_shard_get_model (dm_shard_record_get_shard (priv->record),
+                                            priv->record, cancellable, error);
+
+      if (g_cancellable_set_error_if_cancelled (cancellable, error))
+        return NULL;
+
+      g_autofree gchar *content_type;
+      g_object_get (priv->content, "content-type", &content_type, NULL);
+      g_file_info_set_content_type (info, content_type);
+    }
 
   g_file_attribute_matcher_unref (matcher);
 
@@ -254,10 +272,13 @@ ekn_file_query_info (GFile                *self,
 static GFileInputStream *
 ekn_file_read_fn (GFile *self, GCancellable *cancellable, GError **error)
 {
+  EknFilePrivate *priv = EKN_FILE_PRIVATE (self);
+
+  GInputStream *stream = dm_shard_stream_data (dm_shard_record_get_shard (priv->record),
+                                               priv->record, cancellable, error);
   if (g_cancellable_set_error_if_cancelled (cancellable, error))
     return NULL;
 
-  GInputStream *stream = eos_shard_blob_get_stream (EKN_FILE_PRIVATE (self)->blob);
   return _ekn_file_input_stream_wrapper_new (self, stream);
 }
 
@@ -301,19 +322,20 @@ ekn_file_class_init (EknFileClass *klass)
                          G_PARAM_CONSTRUCT_ONLY |
                          G_PARAM_STATIC_STRINGS);
 
-  properties[PROP_BLOB] =
-    g_param_spec_pointer ("blob",
-                          "Blob",
-                          "EosShardBlob for uri",
-                          G_PARAM_READWRITE |
-                          G_PARAM_CONSTRUCT_ONLY |
-                          G_PARAM_STATIC_STRINGS);
+  properties[PROP_RECORD] =
+    g_param_spec_boxed ("record",
+                        "Record",
+                        "DmShardRecord for URI",
+                        DM_TYPE_SHARD_RECORD,
+                        G_PARAM_READWRITE |
+                        G_PARAM_CONSTRUCT_ONLY |
+                        G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, N_PROPERTIES, properties);
 }
 
 GFile *
-_ekn_file_new (const gchar *uri, EosShardBlob *blob)
+_ekn_file_new (const gchar *uri, DmShardRecord *record)
 {
-  return g_object_new (EKN_TYPE_FILE, "uri", uri, "blob", blob, NULL);
+  return g_object_new (EKN_TYPE_FILE, "uri", uri, "record", record, NULL);
 }

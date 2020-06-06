@@ -41,7 +41,7 @@ GType
 dm_database_manager_get_type (void) G_GNUC_CONST;
 
 DmDatabaseManager *
-dm_database_manager_new (const char *path);
+dm_database_manager_new (GSList *shards);
 
 XapianMSet *
 dm_database_manager_query (DmDatabaseManager *self,

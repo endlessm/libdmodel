@@ -23,6 +23,8 @@ installed_headers = [
     'dm-query.h',
     'dm-query-results.h',
     'dm-set.h',
+    'dm-shard-record.h',
+    'dm-shard.h',
     'dm-utils.h',
     'dm-video.h',
 ]
@@ -32,6 +34,8 @@ private_headers = [
     'dm-domain-private.h',
     'dm-media-private.h',
     'dm-query-private.h',
+    'dm-shard-eos-shard-private.h',
+    'dm-shard-open-zim-private.h',
     'dm-utils-private.h',
 ]
 sources = [
@@ -48,6 +52,10 @@ sources = [
     'dm-query.c',
     'dm-query-results.c',
     'dm-set.c',
+    'dm-shard-eos-shard.c',
+    'dm-shard-open-zim.c',
+    'dm-shard-record.c',
+    'dm-shard.c',
     'dm-utils.c',
     'dm-video.c',
 ]
@@ -62,8 +70,7 @@ main_library = library('@0@-@1@'.format(meson.project_name(), api_version),
     enum_sources, sources, installed_headers, private_headers,
     c_args: ['-DG_LOG_DOMAIN="@0@"'.format(namespace_name),
         '-DCOMPILING_DMODEL'],
-    dependencies: [gio, glib, gobject, json_glib, libarchive, libendless,
-        shard, soup, xapian_glib],
+    dependencies: main_library_dependencies,
     include_directories: include, install: true,
     link_depends: 'lib@0@.map'.format(meson.project_name()),
     soversion: api_version, version: libtool_version)

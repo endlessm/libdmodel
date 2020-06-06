@@ -36,11 +36,25 @@ libendless = dependency('endless-0', version: libendless_req)
 shard = dependency('eos-shard-0', version: shard_req)
 soup = dependency('libsoup-2.4')
 xapian_glib = dependency('xapian-glib-2.0')
+zim_glib = dependency('zim-glib-3.0')
 
 giomoduledir = gio.get_pkgconfig_variable('giomoduledir')
 
-subdir('eknvfs')
+main_library_dependencies = [
+    gio,
+    glib,
+    gobject,
+    json_glib,
+    libarchive,
+    libendless,
+    shard,
+    soup,
+    xapian_glib,
+    zim_glib,
+]
+
 subdir('dmodel')
+subdir('eknvfs')
 
 # Dependency object for gtk-doc and tests to use
 main_library_dependency = declare_dependency(dependencies: [glib, gobject],
@@ -62,6 +76,7 @@ requires_private = [
     'endless-0 @0@'.format(libendless_req),
     'eos-shard-0 @0@'.format(shard_req),
     'xapian-glib-2.0',
+    'zim-glib-3.0',
 ]
 pkg.generate(filebase: api_name, libraries: [main_library],
     description: 'Software development kit for applications for the developing world',

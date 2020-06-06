@@ -2,27 +2,30 @@
 
 #include "dm-domain-private.h"
 
+#include "dm-shard.h"
+#include "dm-shard-eos-shard-private.h"
+#include "dm-shard-open-zim-private.h"
 #include "dm-database-manager-private.h"
 #include "dm-base.h"
 #include "dm-utils.h"
 #include "dm-utils-private.h"
 
-// Consolidate header would be nice
-#include <eos-shard/eos-shard-blob.h>
-#include <eos-shard/eos-shard-record.h>
-#include <eos-shard/eos-shard-dictionary.h>
-#include <eos-shard/eos-shard-shard-file.h>
 #include <string.h>
+
+#define dm_domain_return_malformed_manifest(error,element) \
+  G_STMT_START{                                            \
+    g_set_error (error, DM_DOMAIN_ERROR,                   \
+                 DM_DOMAIN_ERROR_BAD_MANIFEST,             \
+                 "Manifest element '%s' is not valid",     \
+                 element);                                 \
+    return FALSE;                                          \
+  }G_STMT_END;
 
 GQuark
 dm_domain_error_quark (void)
 {
   return g_quark_from_static_string ("dm-domain-error-quark");
 }
-
-// This hash is derived from sha1('link-table'), and for now is the hardcoded
-// location of link tables for all shards.
-#define LINK_TABLE_ID "4dba9091495e8f277893e0d400e9e092f9f6f551"
 
 /**
  * SECTION:domain
@@ -44,13 +47,10 @@ struct _DmDomain
 
   DmDatabaseManager *db_manager;
   GMutex db_lock;
+  gboolean using_3rd_party_search_index;
 
-  GFile *content_dir;
-  GFile *manifest_file;
-  // List of EosShardShardFile items
+  // List of DmShard items
   GSList *shards;
-  // List of EosShardDictionary items
-  GSList *link_tables;
 };
 
 static void initable_iface_init (GInitableIface *initable_iface);
@@ -136,13 +136,10 @@ dm_domain_finalize (GObject *object)
 
   g_clear_object (&self->db_manager);
   g_mutex_clear (&self->db_lock);
-  g_clear_object (&self->content_dir);
-  g_clear_object (&self->manifest_file);
 
   g_list_free_full (self->subscriptions, g_free);
 
   g_slist_free_full (self->shards, g_object_unref);
-  g_slist_free_full (self->link_tables, (GDestroyNotify) eos_shard_dictionary_unref);
 
   G_OBJECT_CLASS (dm_domain_parent_class)->finalize (object);
 }
@@ -200,115 +197,104 @@ dm_domain_init (G_GNUC_UNUSED DmDomain *self)
 }
 
 static gboolean
-dm_domain_setup_link_tables (DmDomain *self,
-                             GError **error)
-{
-  for (GSList *l = self->shards; l; l = l->next)
-    {
-      EosShardShardFile *shard = l->data;
-      g_autoptr(EosShardRecord) record = eos_shard_shard_file_find_record_by_hex_name (shard, LINK_TABLE_ID);
-      if (record == NULL)
-        continue;
-      EosShardDictionary *dict;
-      if (!(dict = eos_shard_blob_load_as_dictionary (record->data, error)))
-        return FALSE;
-      self->link_tables = g_slist_append (self->link_tables, dict);
-    }
-
-  return TRUE;
-}
-
-static gboolean
 dm_domain_process_subscription (DmDomain *self,
-                                GFile *bundle_dir,
-                                JsonArray *json_subscriptions,
-                                const gchar *relative_path,
-                                GCancellable *cancellable,
+                                GFile *subscription_dir,
                                 GError **error)
 {
-  g_autoptr(GFile) manifest_file = g_file_get_child (bundle_dir, "manifest.json");
-  if (!g_file_query_exists (manifest_file, cancellable))
-    {
-      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-                   "You have no manifest.json and are not running from a "
-                   "Flatpak bundle. You must install some content");
-      return FALSE;
-    }
-
-  g_autofree gchar *contents = NULL;
-  if (!g_file_load_contents (manifest_file, cancellable, &contents,
-                             NULL, NULL, error))
+  g_autofree gchar *subscription_path = g_file_get_path (subscription_dir);
+  JsonParser *json_parser = json_parser_new ();
+  g_autofree gchar *manifest_filename = g_build_filename (subscription_path, "manifest.json", NULL);
+  gboolean parsing_success = json_parser_load_from_file (json_parser, manifest_filename, error);
+  if (!parsing_success)
     return FALSE;
 
-  g_autoptr(JsonNode) manifest_node = NULL;
-  if (!(manifest_node = json_from_string (contents, error)))
-    return FALSE;
+  g_autoptr(JsonNode) manifest_node = json_parser_get_root (json_parser);
+  JsonObject *manifest = json_node_get_object (manifest_node);
+  g_autoptr(GHashTable) db_offset_by_path = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                                                   NULL, g_free);
 
-  if (!JSON_NODE_HOLDS_OBJECT (manifest_node))
+  JsonNode *xapian_databases_node = json_object_get_member (manifest, "xapian_databases");
+  if (xapian_databases_node && JSON_NODE_HOLDS_ARRAY (xapian_databases_node))
     {
-      g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_BAD_MANIFEST,
-                   "Manifest file does not hold a json object");
-      return FALSE;
-    }
-
-  JsonObject *json_manifest = json_node_get_object (manifest_node);
-
-  /* FIXME: Remove this hack */
-  if (json_subscriptions)
-    {
-      JsonArray *json_dbs = json_object_get_array_member (json_manifest, "xapian_databases");
-      g_autofree gchar *subscription_path = g_file_get_path (bundle_dir);
-      g_autoptr(GList) dbs = json_array_get_elements (json_dbs);
-      GList *l;
-
-      for (l = dbs; l; l = g_list_next (l))
+      JsonArray *xapian_databases = json_node_get_array (xapian_databases_node);
+      for (guint i = 0; i < json_array_get_length (xapian_databases); i++)
         {
-          JsonObject *json_db = json_node_get_object (l->data);
-          JsonObject *json_subscription = json_object_new ();
-          const gchar *json_path = json_object_get_string_member (json_db, "path");
-          g_autofree gchar *path = g_build_filename (relative_path, subscription_path, json_path, NULL);
+          JsonNode *xapian_database_node = json_array_get_element (xapian_databases, i);
+          if (!JSON_NODE_HOLDS_OBJECT (xapian_database_node))
+            dm_domain_return_malformed_manifest (error, "xapian_databases.[]");
 
-          json_object_set_int_member (json_subscription, "offset",
-                                      json_object_get_int_member (json_db, "offset"));
-          json_object_set_string_member (json_subscription, "path", path);
-          json_array_add_object_element (json_subscriptions, json_subscription);
+          JsonNode *path_node = json_object_get_member (json_node_get_object (xapian_database_node), "path");
+          if (path_node == NULL || json_node_get_value_type (path_node) != G_TYPE_STRING)
+            dm_domain_return_malformed_manifest (error, "xapian_databases.[].path");
+
+          JsonNode *offset_node = json_object_get_member (json_node_get_object (xapian_database_node), "offset");
+          if (offset_node == NULL || json_node_get_value_type (offset_node) != G_TYPE_INT64)
+            continue;
+
+          gint64 *offset = g_new (gint64, 1);
+          *offset = json_node_get_int (offset_node);
+
+          g_hash_table_insert (db_offset_by_path,
+                               (gchar *) json_node_get_string (path_node),
+                               offset);
         }
     }
 
-  JsonNode *shards_node = json_object_get_member (json_manifest, "shards");
-
+  JsonNode *shards_node = json_object_get_member (manifest, "shards");
   if (shards_node == NULL || !JSON_NODE_HOLDS_ARRAY (shards_node))
-    {
-      g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_BAD_MANIFEST,
-                   "Missing or malformed shards entry in manifest");
-      return FALSE;
-    }
+    dm_domain_return_malformed_manifest (error, "shards");
 
+  gchar *current_shard_type = NULL;
   JsonArray *shards_array = json_node_get_array (shards_node);
   for (guint i = 0; i < json_array_get_length (shards_array); i++)
     {
+      DmShard *shard;
+
       JsonNode *shard_node = json_array_get_element (shards_array, i);
       if (!JSON_NODE_HOLDS_OBJECT (shard_node))
-        {
-          g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_BAD_MANIFEST,
-                       "Malformed shard entry in manifest");
-          return FALSE;
-        }
+        dm_domain_return_malformed_manifest (error, "shards.[]");
+
       JsonNode *path_node = json_object_get_member (json_node_get_object (shard_node), "path");
       if (path_node == NULL || json_node_get_value_type (path_node) != G_TYPE_STRING)
+        dm_domain_return_malformed_manifest (error, "shards.[].path");
+
+      const gchar *relative_path = json_node_get_string (path_node);
+      g_autofree gchar *path = g_build_filename (subscription_path, relative_path, NULL);
+
+      JsonNode *type_node = json_object_get_member (json_node_get_object (shard_node), "type");
+      gchar *type;
+      if (type_node == NULL || json_node_get_value_type (type_node) != G_TYPE_STRING)
+        type = "eosshard";
+      else
+        type = (gchar *) json_node_get_string (type_node);
+
+      if (!current_shard_type)
+        current_shard_type = type;
+      else if (g_strcmp0 (type, current_shard_type) != 0)
         {
           g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_BAD_MANIFEST,
-                       "Malformed shard entry in manifest");
+                       "Mixing shard types is not yet supported");
           return FALSE;
         }
 
-      g_autoptr(GFile) shard_file = g_file_get_child (bundle_dir,
-                                                      json_node_get_string (path_node));
+      if (g_strcmp0 (type, "eosshard") == 0)
+        shard = DM_SHARD (dm_shard_eos_shard_new (path));
+      else if (g_strcmp0 (type, "openzim") == 0)
+        {
+          shard = DM_SHARD (dm_shard_open_zim_new (path));
+          self->using_3rd_party_search_index = TRUE;
+        }
+      else
+        {
+          g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_BAD_MANIFEST,
+                       "Invalid shard type \"%s\"", type);
+          return FALSE;
+        }
 
-      g_autofree gchar *path = g_file_get_path (shard_file);
-      EosShardShardFile *shard = g_object_new (EOS_SHARD_TYPE_SHARD_FILE,
-                                               "path", path,
-                                               NULL);
+      gpointer db_offset = g_hash_table_lookup (db_offset_by_path, relative_path);
+      if (db_offset)
+        dm_shard_override_db_offset (shard, *((gint64 *) db_offset));
+
       self->shards = g_slist_append (self->shards, shard);
     }
 
@@ -318,8 +304,6 @@ dm_domain_process_subscription (DmDomain *self,
 static gboolean
 dm_domain_import_subscriptions (DmDomain *self,
                                 GFile *subscriptions_dir,
-                                JsonArray *json_subscriptions,
-                                const gchar *relative_path,
                                 GCancellable *cancellable,
                                 GError **error)
 {
@@ -336,14 +320,20 @@ dm_domain_import_subscriptions (DmDomain *self,
         break;
       if (g_file_info_get_file_type (info) != G_FILE_TYPE_DIRECTORY)
         continue;
-      if (!dm_domain_process_subscription (self, dir, json_subscriptions,
-                                           relative_path, cancellable, error))
+      if (!dm_domain_process_subscription (self, dir, error))
           return FALSE;
 
       self->subscriptions = g_list_prepend (self->subscriptions, g_strdup (g_file_info_get_name (info)));
     }
 
   return TRUE;
+}
+
+static gboolean
+is_directory (GFile *file,
+              GCancellable *cancellable)
+{
+  return g_file_query_file_type (file, G_FILE_QUERY_INFO_NONE, cancellable) == G_FILE_TYPE_DIRECTORY;
 }
 
 static gboolean
@@ -356,57 +346,31 @@ dm_domain_initable_init (GInitable *initable,
   gboolean has_app_id = (self->app_id != NULL && *self->app_id != '\0');
   gboolean has_path = (self->path != NULL && *self->path != '\0');
 
+  self->using_3rd_party_search_index = FALSE;
+
   if (has_path)
     {
-      g_autoptr(GFile) subscription_dir = g_file_new_for_path (self->path);
-      self->manifest_file = g_file_get_child (subscription_dir, "manifest.json");
-
-      if (!g_file_query_exists (subscription_dir, cancellable))
+      g_autoptr(GFile) path_file = g_file_new_for_path (self->path);
+      if (!is_directory (path_file, cancellable))
         {
           g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_PATH_NOT_FOUND,
-                       "You must provide an existing domain path");
+                       "%s is not a valid directory", self->path);
           return FALSE;
         }
 
-      if (!dm_domain_process_subscription (self, subscription_dir, NULL, NULL,
-                                           cancellable, error))
-          return FALSE;
+      if (!dm_domain_process_subscription (self, path_file, error))
+        return FALSE;
     }
   else if (has_app_id)
     {
-      g_autofree gchar *manifest_tmp = g_strconcat (g_get_user_data_dir (),
-                                                    G_DIR_SEPARATOR_S,
-                                                    "dmodel.",
-                                                    self->app_id,
-                                                    ".manifest.json",
-                                                    NULL);
-
-      self->manifest_file = g_file_new_for_path (manifest_tmp);
-      JsonArray *json_subscriptions = json_array_new ();
-
-      /* Find out root relative path from manifest file */
-      g_autoptr(GFile) p = g_file_get_parent (self->manifest_file);
-      g_autoptr(GString) relative_path = g_string_new ("");
-      while (TRUE)
-        {
-          g_autoptr(GFile) old_p = g_steal_pointer (&p);
-          p = g_file_get_parent (old_p);
-          if (p == NULL)
-            break;
-          g_string_append (relative_path, "../");
-        }
-
       /* Import subscriptions from data directory */
-      g_autoptr(GFile) subscriptions_dir = NULL;
-      self->content_dir = dm_get_data_dir (self->app_id);
-      subscriptions_dir = g_file_get_child (self->content_dir,
-                                            "com.endlessm.subscriptions");
-      if (g_file_query_exists (subscriptions_dir, NULL))
+      g_autoptr(GFile) content_dir = dm_get_data_dir (self->app_id);
+      g_autoptr(GFile) subscriptions_dir = g_file_get_child (content_dir,
+                                                             "com.endlessm.subscriptions");
+      if (is_directory (subscriptions_dir, cancellable))
         {
           if (!dm_domain_import_subscriptions (self, subscriptions_dir,
-                                               json_subscriptions,
-                                               relative_path->str, cancellable,
-                                               error))
+                                               cancellable, error))
               return FALSE;
         }
 
@@ -415,24 +379,13 @@ dm_domain_initable_init (GInitable *initable,
       for (GList *l = extensions_dirs; l != NULL; l = l->next)
         {
           GFile *extension_dir = l->data;
-          if (g_file_query_exists(extension_dir, cancellable))
+          if (is_directory (extension_dir, cancellable))
             {
               if (!dm_domain_import_subscriptions (self, extension_dir,
-                                                   json_subscriptions,
-                                                   relative_path->str,
                                                    cancellable, error))
                   return FALSE;
             }
         }
-
-      g_autoptr(JsonGenerator) json_generator = json_generator_new ();
-      g_autoptr(JsonNode) json_root_node = json_node_new (JSON_NODE_OBJECT);
-      JsonObject *json_root = json_object_new ();
-
-      json_object_set_array_member (json_root, "xapian_databases", json_subscriptions);
-      json_node_take_object (json_root_node, json_root);
-      json_generator_set_root (json_generator, json_root_node);
-      json_generator_to_file (json_generator, manifest_tmp, error);
     }
   else
     {
@@ -448,14 +401,10 @@ dm_domain_initable_init (GInitable *initable,
       return FALSE;
     }
 
-  g_autofree char *db_path = g_file_get_path (self->manifest_file);
-  self->db_manager = dm_database_manager_new (db_path);
+  self->db_manager = dm_database_manager_new (self->shards);
   g_mutex_init (&self->db_lock);
 
   if (!dm_utils_parallel_init (self->shards, 0, cancellable, error))
-    return FALSE;
-
-  if (!dm_domain_setup_link_tables (self, error))
     return FALSE;
 
   return TRUE;
@@ -467,17 +416,23 @@ initable_iface_init (GInitableIface *initable_iface)
   initable_iface->init = dm_domain_initable_init;
 }
 
-static EosShardRecord *
-dm_domain_load_record_from_hash_sync (DmDomain *self,
-                                      const char *hash)
+static DmShardRecord *
+dm_domain_load_record (DmDomain *self,
+                       const char *uri,
+                       GError **error)
 {
-  for (GSList *l = self->shards; l; l = l->next)
+  g_autofree gchar *object_id = (gchar *) dm_utils_uri_get_object_id (uri);
+  if (!object_id)
     {
-      EosShardRecord *record = eos_shard_shard_file_find_record_by_hex_name (l->data, hash);
-      if (record != NULL)
-        return record;
+      g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_ID_NOT_VALID,
+                   "The asset URI is not valid: %s", uri);
+      return NULL;
     }
-  return NULL;
+
+  DmShardRecord *record = NULL;
+  for (GSList *l = self->shards; l && !record; l = g_slist_next (l))
+    record = dm_shard_find_by_id (l->data, object_id);
+  return record;
 }
 
 /**
@@ -526,7 +481,7 @@ dm_domain_get_subscription_ids (DmDomain *self)
  *
  * Gets the list of shard files in the domain.
  *
- * Returns: (element-type EosShardShardFile) (transfer none): the shards
+ * Returns: (element-type DmShard) (transfer none): the shards
  */
 GSList *
 dm_domain_get_shards (DmDomain *self)
@@ -550,48 +505,19 @@ dm_domain_get_shards (DmDomain *self)
  */
 gchar *
 dm_domain_test_link (DmDomain *self,
-                       const gchar *link,
-                       GError **error)
+                     const gchar *link,
+                     GError **error)
 {
-  for (GSList *l = self->link_tables; l; l = l->next)
-    {
-      gchar *resolved = eos_shard_dictionary_lookup_key (l->data, link, error);
-      if (resolved != NULL)
-        return resolved;
-    }
-  return NULL;
-}
-
-static void
-on_metadata_stream_parsed (GObject *source,
-                           GAsyncResult *result,
-                           gpointer user_data)
-{
-  JsonParser *parser = JSON_PARSER (source);
-  g_autoptr(GTask) task = user_data;
-  GError *error = NULL;
-
-  if (!json_parser_load_from_stream_finish (parser, result, &error))
-    {
-      g_task_return_error (task, error);
-      return;
-    }
-
-  DmContent *model = dm_model_from_json_node (json_parser_get_root (parser),
-                                              &error);
-  if (error != NULL)
-    {
-      g_task_return_error (task, error);
-      return;
-    }
-
-  g_task_return_pointer (task, model, g_object_unref);
+  gchar *object_uri = NULL;
+  for (GSList *l = self->shards; l && !object_uri && !*error; l = g_slist_next (l))
+    object_uri = dm_shard_test_link (l->data, link, error);
+  return object_uri;
 }
 
 /**
  * dm_domain_get_object:
  * @self: the domain
- * @id: the ID of the object to load
+ * @uri: the URI of the object to load
  * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
  * @callback: (scope async): callback to call when the request is satisfied.
  * @user_data: (closure): the data to pass to callback function.
@@ -600,37 +526,36 @@ on_metadata_stream_parsed (GObject *source,
  */
 void
 dm_domain_get_object (DmDomain *self,
-                      const char *id,
+                      const char *uri,
                       GCancellable *cancellable,
                       GAsyncReadyCallback callback,
                       gpointer user_data)
 {
   g_return_if_fail (DM_IS_DOMAIN (self));
-  g_return_if_fail (id != NULL && *id != '\0');
   g_return_if_fail (G_IS_CANCELLABLE (cancellable) || cancellable == NULL);
 
+  GError *error = NULL;
+
   g_autoptr(GTask) task = g_task_new (self, cancellable, callback, user_data);
-  JsonParser *parser = json_parser_new_immutable ();
-  g_task_set_task_data (task, parser, g_object_unref);
 
-  const gchar *hash = dm_utils_id_get_hash (id);
-  if (hash == NULL)
-    {
-      g_task_return_new_error (task, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_ID_NOT_VALID,
-                               "Not a valid id %s", id);
-      return;
-    }
-
-  g_autoptr(EosShardRecord) record = dm_domain_load_record_from_hash_sync (self, hash);
+  g_autoptr(DmShardRecord) record = dm_domain_load_record (self, uri, NULL);
   if (record == NULL)
     {
       g_task_return_new_error (task, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_ID_NOT_FOUND,
-                               "Could not find shard record for id %s", id);
+                               "Could not find shard record for URI %s", uri);
       return;
     }
 
-  g_autoptr(GInputStream) stream = eos_shard_blob_get_stream (record->metadata);
-  json_parser_load_from_stream_async (parser, stream, cancellable, on_metadata_stream_parsed, g_steal_pointer (&task));
+  DmContent *model = dm_shard_get_model (dm_shard_record_get_shard (record),
+                                         record, cancellable, &error);
+
+  if (error != NULL)
+    {
+      g_task_return_error (task, error);
+      return;
+    }
+
+  g_task_return_pointer (task, model, g_object_unref);
 }
 
 /**
@@ -656,47 +581,20 @@ dm_domain_get_object_finish (DmDomain *self,
 
 static DmContent *
 dm_domain_get_object_sync (DmDomain *self,
-                           const char *id,
+                           const char *uri,
                            GCancellable *cancellable,
                            GError **error)
 {
-  const gchar *hash = dm_utils_id_get_hash (id);
-  if (hash == NULL)
-    {
-      g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_ID_NOT_VALID,
-                   "Not a valid id %s", id);
-      return NULL;
-    }
-
-  g_autoptr(EosShardRecord) record = dm_domain_load_record_from_hash_sync (self, hash);
+  g_autoptr(DmShardRecord) record = dm_domain_load_record (self, uri, NULL);
   if (record == NULL)
     {
       g_set_error (error, DM_DOMAIN_ERROR, DM_DOMAIN_ERROR_ID_NOT_FOUND,
-                   "Could not find shard record for id %s", id);
+                   "Could not find shard record for URI %s", uri);
       return NULL;
     }
 
-  g_autoptr(GInputStream) stream = eos_shard_blob_get_stream (record->metadata);
-
-  g_autoptr(JsonParser) parser = json_parser_new_immutable ();
-  GError *internal_error = NULL;
-  json_parser_load_from_stream (parser, stream, cancellable, &internal_error);
-  if (internal_error != NULL)
-    {
-      g_propagate_error (error, internal_error);
-      return NULL;
-    }
-
-  DmContent *model =
-    dm_model_from_json_node (json_parser_get_root (parser), &internal_error);
-
-  if (internal_error != NULL)
-    {
-      g_propagate_error (error, internal_error);
-      return NULL;
-    }
-
-  return model;
+  return dm_shard_get_model (dm_shard_record_get_shard (record),
+                             record, cancellable, error);
 }
 
 typedef struct
@@ -740,6 +638,15 @@ query_fix_task (GTask *task,
     return;
 
   g_autoptr(GMutexLocker) db_lock = g_mutex_locker_new (&self->db_lock);
+
+  if (request->domain->using_3rd_party_search_index)
+    g_object_set (request->query,
+                  "match", DM_QUERY_MATCH_TITLE_SYNOPSIS,
+                  "tags-match-all", NULL,
+                  "tags-match-any", NULL,
+                  "content-type", NULL,
+                  "excluded-content-type", NULL,
+                  NULL);
 
   dm_database_manager_fix_query (request->db_manager,
                                  dm_query_get_search_terms (request->query),
@@ -890,12 +797,18 @@ query_task (GTask *task,
           continue;
         }
 
-      g_autofree char *object_id = xapian_document_get_data (document);
+      g_autofree char *document_data = xapian_document_get_data (document);
+      g_autofree char *uri = NULL;
 
-      g_debug ("Retrieving document object '%s'\n", object_id);
+      if (!g_str_has_prefix (document_data, "ekn://"))
+        uri = g_strconcat ("ekn+zim:///", document_data, NULL);
+      else
+        uri = g_strdup (document_data);
+
+      g_debug ("Retrieving document object '%s'\n", uri);
 
       DmContent *model =
-        dm_domain_get_object_sync (self, object_id, NULL, &internal_error);
+        dm_domain_get_object_sync (self, uri, NULL, &internal_error);
 
       if (internal_error != NULL)
         {
@@ -993,31 +906,41 @@ dm_domain_read_uri (DmDomain *self,
                     const char **mime_type,
                     GError **error)
 {
-  g_return_val_if_fail(uri && g_str_has_prefix (uri, "ekn://"), FALSE);
-  g_auto(GStrv) tokens = g_strsplit (uri + strlen("ekn://"), "/", -1);
-  g_return_val_if_fail(tokens && tokens[0] && tokens[1], FALSE);
-
-  g_autoptr(EosShardRecord) record = NULL;
-  /* iterate over all shards until we find a matching record */
-  for (GSList *l = self->shards; l && !record; l = g_slist_next (l))
-    record = eos_shard_shard_file_find_record_by_hex_name (l->data, tokens[1]);
+  g_autoptr(GError) internal_error = NULL;
+  g_autoptr(DmShardRecord) record = dm_domain_load_record (self, uri, &internal_error);
 
   if (!record)
-    return TRUE;
+    {
+      if (internal_error)
+        {
+          g_propagate_error (error, internal_error);
+          return FALSE;
+        }
 
-  g_autoptr(EosShardBlob) blob = eos_shard_blob_ref (record->data);
-  /* Use resource, if present */
-  if (tokens[2])
-    blob = eos_shard_record_lookup_blob (record, tokens[2]);
+      return TRUE;
+    }
 
-  if (!blob)
-    return TRUE;
-
-  if (mime_type)
-    *mime_type = g_strdup (eos_shard_blob_get_content_type (blob));
+  DmContent *model = dm_shard_get_model (dm_shard_record_get_shard (record),
+                                         record, NULL, NULL);
+  if (model)
+    g_object_get (model, "content-type", *mime_type, NULL);
 
   if (bytes)
-    *bytes = eos_shard_blob_load_contents (blob, error);
+    {
+      g_autoptr(GInputStream) stream = dm_shard_stream_data (dm_shard_record_get_shard (record),
+                                                             record, NULL, &internal_error);
+      if (!internal_error)
+        {
+          gsize size = dm_shard_get_data_size (dm_shard_record_get_shard (record), record);
+          *bytes = g_input_stream_read_bytes (stream, size, NULL, &internal_error);
+        }
+
+      if (internal_error)
+        {
+          g_propagate_error (error, internal_error);
+          return FALSE;
+        }
+    }
 
   return TRUE;
 }

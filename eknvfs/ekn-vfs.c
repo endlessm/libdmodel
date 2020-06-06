@@ -24,6 +24,9 @@
 
 #include "ekn-file.h"
 #include <string.h>
+#include <dm-utils.h>
+#include <dm-shard.h>
+#include <dm-shard-record.h>
 #include <eos-shard/eos-shard-shard-file.h>
 #include <eos-shard/eos-shard-record.h>
 
@@ -40,7 +43,7 @@ struct _EknVfs
 
 typedef struct
 {
-  GSList *shards;         /* EosShardShardFile list */
+  GSList *shards;         /* DmShard list */
 
   GHashTable *extensions; /* (uri, GVfs *) table */
   gchar     **schemes;    /* Schemes suported by all GVfs in extensions table */
@@ -249,48 +252,28 @@ ekn_vfs_get_file_for_uri (GVfs *self, const char *uri)
   EknVfsPrivate *priv = EKN_VFS_PRIVATE (self);
   GFile *retval = NULL;
 
-  if (uri && g_str_has_prefix (uri, EKN_URI":"))
+  g_autofree gchar *object_id = (gchar *) dm_utils_uri_get_object_id (uri);
+
+  if (object_id)
     {
-      /* The URI is of the form 'ekn://domain/hash[/resource]' */
-      /* Domain is part of legacy bundle support and should not be used
-       * for modern content. */
-      gchar **tokens = g_strsplit (uri + EKN_SCHEME_LEN, "/", -1);
+      DmShardRecord *record = NULL;
 
-      if (tokens && tokens[0] && tokens[1])
-        {
-          EosShardRecord *record = NULL;
-          GSList *l;
+      for (GSList *l = priv->shards; l && !record; l = g_slist_next (l))
+        record = dm_shard_find_by_id (l->data, object_id);
 
-          /* iterate over all shards until we find a matching record */
-          for (l = priv->shards; l && !record; l = g_slist_next (l))
-            record = eos_shard_shard_file_find_record_by_hex_name (l->data, tokens[1]);
-
-          if (record)
-            {
-              EosShardBlob *blob = record->data;
-
-              /* Use resource, if present */
-              if (tokens[2])
-                blob = eos_shard_record_lookup_blob (record, tokens[2]);
-
-              if (blob)
-                retval = _ekn_file_new (uri, blob);
-            }
-        }
-
-      g_strfreev (tokens);
+      if (record)
+        retval = _ekn_file_new (uri, record);
     }
   else if (uri && priv->extensions)
     {
-      gchar *scheme = g_uri_parse_scheme (uri);
+      g_autofree gchar *scheme = g_uri_parse_scheme (uri);
       if (scheme)
         {
-          GVfs  *delegate = g_hash_table_lookup (priv->extensions, scheme);
+          GVfs *delegate = g_hash_table_lookup (priv->extensions, scheme);
 
           if (delegate)
             retval = g_vfs_get_file_for_uri (delegate, uri);
         }
-      g_free (scheme);
     }
 
   /* This method should never fail */
@@ -333,7 +316,7 @@ ekn_vfs_class_init (EknVfsClass *klass)
   properties[PROP_SHARDS] =
     g_param_spec_pointer ("shards",
                           "Shards",
-                          "Add a EosShardShardFile object to the list of shards to lookup ekn uris",
+                          "Add a DmShard object to the list of shards to lookup ekn uris",
                           G_PARAM_READWRITE);
 
   g_object_class_install_properties (object_class, N_PROPERTIES, properties);

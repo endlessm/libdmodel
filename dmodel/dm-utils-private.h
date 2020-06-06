@@ -30,7 +30,4 @@ dm_utils_append_gparam_from_json_node (JsonNode *node,
 void
 dm_utils_free_gparam_array (GArray *params);
 
-const gchar *
-dm_utils_id_get_hash (const char *id);
-
 G_END_DECLS

@@ -66,7 +66,7 @@ dm_domain_test_link (DmDomain *self,
 DM_AVAILABLE_IN_ALL
 void
 dm_domain_get_object (DmDomain *self,
-                      const char *id,
+                      const char *uri,
                       GCancellable *cancellable,
                       GAsyncReadyCallback callback,
                       gpointer user_data);
