@@ -642,6 +642,7 @@ query_fix_task (GTask *task,
   if (request->domain->using_3rd_party_search_index)
     g_object_set (request->query,
                   "match", DM_QUERY_MATCH_TITLE_SYNOPSIS,
+                  "cutoff", 5,
                   "tags-match-all", NULL,
                   "tags-match-any", NULL,
                   "content-type", NULL,
