@@ -1170,6 +1170,8 @@ dm_query_configure_enquire (DmQuery *self,
 {
   int sort_value = dm_query_get_sort_value (self);
 
+  xapian_enquire_set_collapse_key (enquire, 0);
+
   if (sort_value > -1)
     {
       gboolean reversed = (self->order == DM_QUERY_ORDER_DESCENDING);
