@@ -217,6 +217,12 @@ dm_database_manager_register_prefixes (DmDatabaseManager *self,
   g_autofree char *metadata_json =
     xapian_database_get_metadata (priv->database, PREFIX_METADATA_KEY, &error);
 
+  if (strlen (metadata_json) == 0)
+    g_set_error (&error, DM_DATABASE_MANAGER_ERROR,
+                 DM_DATABASE_MANAGER_ERROR_INVALID_METADATA,
+                 "Xapian metadata value for %s is empty",
+                 PREFIX_METADATA_KEY);
+
   if (error != NULL)
     {
       dm_database_manager_add_queryparser_standard_prefixes (self);
@@ -251,6 +257,12 @@ dm_database_manager_register_stopwords (DmDatabaseManager *self,
 
   g_autofree char *stopwords_json =
     xapian_database_get_metadata (priv->database, STOPWORDS_METADATA_KEY, &error);
+
+  if (strlen (stopwords_json) == 0)
+    g_set_error (&error, DM_DATABASE_MANAGER_ERROR,
+                 DM_DATABASE_MANAGER_ERROR_INVALID_METADATA,
+                 "Xapian metadata value for %s is empty",
+                 STOPWORDS_METADATA_KEY);
 
   if (error != NULL)
     {
@@ -377,15 +389,13 @@ dm_database_manager_create_db_internal (DmDatabaseManager *self,
 
   if (!dm_database_manager_register_prefixes (self, &error))
     {
-      /* Non-fatal */
-      g_warning ("Could not register database prefixes: %s", error->message);
+      g_info ("Could not register database prefixes: %s", error->message);
       g_clear_error (&error);
     }
 
   if (!dm_database_manager_register_stopwords (self, &error))
     {
-      /* Non-fatal */
-      g_warning ("Could not add database stop words: %s.", error->message);
+      g_info ("Could not add database stop words: %s.", error->message);
       g_clear_error (&error);
     }
 

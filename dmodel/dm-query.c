@@ -60,6 +60,7 @@ struct _DmQuery
   DmQueryOrder order;
   guint limit;
   guint offset;
+  gint cutoff;
   char **tags_match_all;
   char **tags_match_any;
   char **ids;
@@ -81,6 +82,7 @@ enum {
   PROP_ORDER,
   PROP_LIMIT,
   PROP_OFFSET,
+  PROP_CUTOFF,
   PROP_TAGS_MATCH_ALL,
   PROP_TAGS_MATCH_ANY,
   PROP_IDS,
@@ -146,6 +148,10 @@ dm_query_get_property (GObject *object,
 
     case PROP_OFFSET:
       g_value_set_uint (value, self->offset);
+      break;
+
+    case PROP_CUTOFF:
+      g_value_set_int (value, self->cutoff);
       break;
 
     case PROP_TAGS_MATCH_ALL:
@@ -238,6 +244,10 @@ dm_query_set_property (GObject *object,
 
     case PROP_OFFSET:
       self->offset = g_value_get_uint (value);
+      break;
+
+    case PROP_CUTOFF:
+      self->cutoff = g_value_get_int (value);
       break;
 
     case PROP_TAGS_MATCH_ALL:
@@ -422,6 +432,17 @@ dm_query_class_init (DmQueryClass *klass)
     g_param_spec_uint ("offset", "Offset",
       "Number of results to skip",
       0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * DmQuery:cutoff:
+   *
+   * Minimum weight for a document to be returned. If it's -1, default values
+   * are going to be used depending on the match property.
+   */
+  dm_query_props[PROP_CUTOFF] =
+    g_param_spec_int ("cutoff", "Cutoff",
+      "Xapian cutoff value",
+      -1, G_MAXINT, -1, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   /**
    * DmQuery:tags-match-all:
@@ -1013,6 +1034,9 @@ dm_query_get_cutoff (DmQuery *self)
 {
   g_return_val_if_fail (DM_IS_QUERY (self), 0);
 
+  if (self->cutoff != -1)
+    return self->cutoff;
+
   switch (self->match)
     {
     case DM_QUERY_MATCH_TITLE_SYNOPSIS:
@@ -1145,6 +1169,8 @@ dm_query_configure_enquire (DmQuery *self,
                             XapianEnquire *enquire)
 {
   int sort_value = dm_query_get_sort_value (self);
+
+  xapian_enquire_set_collapse_key (enquire, 0);
 
   if (sort_value > -1)
     {
@@ -1304,6 +1330,10 @@ dm_query_to_string (DmQuery *self)
   if (self->propname != default_val) \
     props[ix++] = g_strdup_printf (#propname ": %u", self->propname);
 
+#define DUMP_INT(propname, default_val) \
+  if (self->propname != default_val) \
+    props[ix++] = g_strdup_printf (#propname ": %d", self->propname);
+
 #define DUMP_STRV(propname) \
   if (self->propname && *self->propname) \
     { \
@@ -1324,6 +1354,7 @@ dm_query_to_string (DmQuery *self)
   DUMP_ENUM(order, DM_TYPE_QUERY_ORDER, DM_QUERY_ORDER_ASCENDING)
   DUMP_UINT(limit, G_MAXUINT)
   DUMP_UINT(offset, 0)
+  DUMP_INT(cutoff, -1)
   DUMP_STRV(tags_match_all)
   DUMP_STRV(tags_match_any)
   DUMP_STRV(ids)

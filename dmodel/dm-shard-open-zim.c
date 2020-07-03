@@ -10,6 +10,7 @@
 #include "dm-shard-open-zim-private.h"
 #include "stdio.h"
 
+#define XAPIAN_TITLE_INDEX_URL "X/title/xapian"
 #define XAPIAN_FULLTEXT_INDEX_URL "X/fulltext/xapian"
 
 /**
@@ -166,12 +167,18 @@ dm_shard_open_zim_get_data_size (G_GNUC_UNUSED DmShard *self,
 static gint64
 dm_shard_open_zim_calculate_db_offset (DmShard *self)
 {
-  DmShardRecord *record = dm_shard_open_zim_find_by_id (self, XAPIAN_FULLTEXT_INDEX_URL);
+  DmShardRecord *record = dm_shard_open_zim_find_by_id (self, XAPIAN_TITLE_INDEX_URL);
 
   if (!record)
   {
-    g_warning ("The Xapian fulltext index for '%s' was not found", dm_shard_get_path (self));
-    return -1;
+    g_warning ("The Xapian title index for '%s' was not found, using fulltext index", dm_shard_get_path (self));
+    record = dm_shard_open_zim_find_by_id (self, XAPIAN_FULLTEXT_INDEX_URL);
+
+    if (!record)
+    {
+      g_warning ("No Xapian index found for '%s'", dm_shard_get_path (self));
+      return -1;
+    }
   }
 
   ZimArticle *zim_article = (ZimArticle *) dm_shard_record_get_native (record);

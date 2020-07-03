@@ -374,16 +374,26 @@ dm_domain_initable_init (GInitable *initable,
               return FALSE;
         }
 
-      /* Import subscriptions from extensions directories */
-      g_autoptr(GList) extensions_dirs = dm_get_extensions_dirs (self->app_id);
-      for (GList *l = extensions_dirs; l != NULL; l = l->next)
+      /* libdmodel is used to query app content from SDK apps and from
+         eos-knowledge-services (EKS). If we find the app content under
+         the /app directory, that means we've found the content in the context
+         of the app sandbox, not EKS, so that means we don't need to scan
+         for the app extensions dirs manually in Flatpak installations
+         (EKS case, where content is not mounted in /app) */
+      g_autofree char *subscriptions_path = g_file_get_path (subscriptions_dir);
+      if (!g_str_has_prefix (subscriptions_path, "/app"))
         {
-          GFile *extension_dir = l->data;
-          if (is_directory (extension_dir, cancellable))
+          /* Import subscriptions from extensions directories */
+          g_autoptr(GList) extensions_dirs = dm_get_extensions_dirs (self->app_id);
+          for (GList *l = extensions_dirs; l != NULL; l = l->next)
             {
-              if (!dm_domain_import_subscriptions (self, extension_dir,
-                                                   cancellable, error))
-                  return FALSE;
+              GFile *extension_dir = l->data;
+              if (is_directory (extension_dir, cancellable))
+                {
+                  if (!dm_domain_import_subscriptions (self, extension_dir,
+                                                      cancellable, error))
+                      return FALSE;
+                }
             }
         }
     }
@@ -642,6 +652,7 @@ query_fix_task (GTask *task,
   if (request->domain->using_3rd_party_search_index)
     g_object_set (request->query,
                   "match", DM_QUERY_MATCH_TITLE_SYNOPSIS,
+                  "cutoff", 5,
                   "tags-match-all", NULL,
                   "tags-match-any", NULL,
                   "content-type", NULL,
