@@ -63,23 +63,13 @@ dm_shard_open_zim_find_by_id (DmShard *self,
 
   g_auto(GStrv) tokens = g_strsplit (object_id, "/", 2);
 
-  ZimArticle *returned_article;
   ZimArticle *article = zim_file_get_article_by_namespace (_self->zim_file,
                                                            tokens[0][0],
                                                            tokens[1]);
-  if (zim_article_good (article) && zim_article_is_redirect (article))
-    {
-      returned_article = zim_article_get_redirect_article (article);
-      g_clear_pointer (&article, g_object_unref);
-    }
-  else if (zim_article_good (article))
-    {
-      returned_article = article;
-    }
-  else
+  if (!zim_article_good (article))
     return NULL;
 
-  return dm_shard_record_new (_self, returned_article, g_object_unref);
+  return dm_shard_record_new (_self, article, g_object_unref);
 }
 
 static DmContent *
@@ -89,8 +79,12 @@ dm_shard_open_zim_get_model (G_GNUC_UNUSED DmShard *self,
                              GError **error)
 {
   ZimArticle *zim_article = (ZimArticle *) dm_shard_record_get_native (record);
+  ZimArticle *redirect_article = NULL;
   JsonBuilder *builder = json_builder_new ();
   GSList *tags = NULL;
+
+  if (zim_article_is_redirect (zim_article))
+    redirect_article = zim_article_get_redirect_article (zim_article);
 
   json_builder_begin_object (builder);
 
@@ -125,7 +119,7 @@ dm_shard_open_zim_get_model (G_GNUC_UNUSED DmShard *self,
   json_builder_add_string_value (builder, zim_article_get_title (zim_article));
 
   json_builder_set_member_name (builder, "contentType");
-  json_builder_add_string_value (builder, zim_article_get_mime_type (zim_article));
+  json_builder_add_string_value (builder, zim_article_get_mime_type (redirect_article ? redirect_article : zim_article));
 
   json_builder_set_member_name (builder, "isServerTemplated");
   json_builder_add_boolean_value (builder, TRUE);
@@ -139,6 +133,8 @@ dm_shard_open_zim_get_model (G_GNUC_UNUSED DmShard *self,
 
   json_builder_end_object (builder);
 
+  g_clear_object (&redirect_article);
+
   return dm_model_from_json_node (json_builder_get_root (builder), error);
 }
 
@@ -149,9 +145,16 @@ dm_shard_open_zim_stream_data (G_GNUC_UNUSED DmShard *self,
                                G_GNUC_UNUSED GError **error)
 {
   ZimArticle *zim_article = (ZimArticle *) dm_shard_record_get_native (record);
+  ZimArticle *redirect_article = NULL;
+
+  if (zim_article_is_redirect (zim_article))
+    redirect_article = zim_article_get_redirect_article (zim_article);
 
   gsize size;
-  const char *data = zim_article_get_data (zim_article, &size);
+  const char *data =
+    zim_article_get_data (redirect_article ? redirect_article : zim_article, &size);
+
+  g_clear_object (&redirect_article);
 
   return g_memory_input_stream_new_from_data (data, size, g_free);
 }
@@ -161,7 +164,16 @@ dm_shard_open_zim_get_data_size (G_GNUC_UNUSED DmShard *self,
                                  DmShardRecord *record)
 {
   ZimArticle *zim_article = (ZimArticle *) dm_shard_record_get_native (record);
-  return zim_article_get_data_size (zim_article);
+  ZimArticle *redirect_article = NULL;
+
+  if (zim_article_is_redirect (zim_article))
+    redirect_article = zim_article_get_redirect_article (zim_article);
+
+  gsize size = zim_article_get_data_size (redirect_article ? redirect_article : zim_article);
+
+  g_clear_object (&redirect_article);
+
+  return size;
 }
 
 static gint64
