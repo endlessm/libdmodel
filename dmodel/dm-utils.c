@@ -580,16 +580,29 @@ databases_dirs_from_metadata (const gchar *flatpak_path, const gchar *app_id)
         continue;
 
       extension_name = g_strstrip (extension_name);
+
+      /* Check for a regular extension, first */
+
       extension_path = g_build_filename (flatpak_path, "flatpak",
                                          "runtime", extension_name,
                                          arch, extension_version,
                                          "active", "files",
-                                          NULL);
+                                         NULL);
       extension_dir = g_file_new_for_path (extension_path);
-      if (!g_file_query_exists (extension_dir, NULL))
-        continue;
 
-      list = g_list_prepend (list, g_object_ref (extension_dir));
+      if (g_file_query_exists (extension_dir, NULL))
+        list = g_list_prepend (list, g_object_ref (extension_dir));
+
+      /* Also check for an unmaintained extension */
+
+      extension_path = g_build_filename (flatpak_path, "flatpak",
+                                         "extension", extension_name,
+                                         arch, extension_version,
+                                         NULL);
+      extension_dir = g_file_new_for_path (extension_path);
+
+      if (g_file_query_exists (extension_dir, NULL))
+        list = g_list_prepend (list, g_object_ref (extension_dir));
     }
 
   return list;
