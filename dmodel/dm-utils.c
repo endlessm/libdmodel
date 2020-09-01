@@ -566,7 +566,6 @@ databases_dirs_from_metadata (const gchar *flatpak_path, const gchar *app_id)
       g_autoptr(GFile) extension_dir = NULL;
       gchar *extension_name = NULL;
       g_autofree gchar *extension_version = NULL;
-      g_autofree gchar *extension_path = NULL;
 
       if (!g_str_has_prefix (groups[i], "Extension"))
         continue;
@@ -580,16 +579,27 @@ databases_dirs_from_metadata (const gchar *flatpak_path, const gchar *app_id)
         continue;
 
       extension_name = g_strstrip (extension_name);
-      extension_path = g_build_filename (flatpak_path, "flatpak",
-                                         "runtime", extension_name,
-                                         arch, extension_version,
-                                         "active", "files",
-                                          NULL);
-      extension_dir = g_file_new_for_path (extension_path);
-      if (!g_file_query_exists (extension_dir, NULL))
-        continue;
 
-      list = g_list_prepend (list, g_object_ref (extension_dir));
+      /* Check for a regular extension, first */
+
+      extension_dir = g_file_new_build_filename (flatpak_path, "flatpak",
+                                                 "runtime", extension_name,
+                                                 arch, extension_version,
+                                                 "active", "files",
+                                                 NULL);
+
+      if (g_file_query_exists (extension_dir, NULL))
+        list = g_list_prepend (list, g_object_ref (extension_dir));
+
+      /* Also check for an unmaintained extension */
+
+      extension_dir = g_file_new_build_filename (flatpak_path, "flatpak",
+                                                 "extension", extension_name,
+                                                 arch, extension_version,
+                                                 NULL);
+
+      if (g_file_query_exists (extension_dir, NULL))
+        list = g_list_prepend (list, g_object_ref (extension_dir));
     }
 
   return list;
