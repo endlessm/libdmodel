@@ -2,7 +2,7 @@
 
 /* Copyright 2020 Endless Mobile, Inc. */
 
-#include <zim-glib-3.0/file.h>
+#include <zim-glib-4.0/file.h>
 
 #include "dm-base.h"
 
